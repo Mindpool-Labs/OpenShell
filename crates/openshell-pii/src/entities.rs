@@ -28,6 +28,21 @@ pub enum EntityType {
     Jwt,
     ApiKey,
     Passport,
+    // -- Additional regex-detected entity types (Financial/Technical/Tax) --
+    Iban,
+    RoutingNumber,
+    SwiftCode,
+    BankAccount,
+    BitcoinAddress,
+    EthereumAddress,
+    Vin,
+    MacAddress,
+    Ipv6,
+    Url,
+    Username,
+    Coordinates,
+    TaxIdEin,
+    TaxIdItin,
     // -- NER-only entity types (no regex pattern) --
     Person,
     Organization,
@@ -53,6 +68,20 @@ impl fmt::Display for EntityType {
             Self::Jwt => write!(f, "jwt"),
             Self::ApiKey => write!(f, "api_key"),
             Self::Passport => write!(f, "passport"),
+            Self::Iban => write!(f, "iban"),
+            Self::RoutingNumber => write!(f, "routing_number"),
+            Self::SwiftCode => write!(f, "swift_code"),
+            Self::BankAccount => write!(f, "bank_account"),
+            Self::BitcoinAddress => write!(f, "bitcoin_address"),
+            Self::EthereumAddress => write!(f, "ethereum_address"),
+            Self::Vin => write!(f, "vin"),
+            Self::MacAddress => write!(f, "mac_address"),
+            Self::Ipv6 => write!(f, "ipv6"),
+            Self::Url => write!(f, "url"),
+            Self::Username => write!(f, "username"),
+            Self::Coordinates => write!(f, "coordinates"),
+            Self::TaxIdEin => write!(f, "tax_id_ein"),
+            Self::TaxIdItin => write!(f, "tax_id_itin"),
             Self::Person => write!(f, "person"),
             Self::Organization => write!(f, "organization"),
             Self::Address => write!(f, "address"),
@@ -79,6 +108,20 @@ impl EntityType {
             "jwt" => Some(Self::Jwt),
             "api_key" => Some(Self::ApiKey),
             "passport" => Some(Self::Passport),
+            "iban" => Some(Self::Iban),
+            "routing_number" => Some(Self::RoutingNumber),
+            "swift_code" => Some(Self::SwiftCode),
+            "bank_account" => Some(Self::BankAccount),
+            "bitcoin_address" => Some(Self::BitcoinAddress),
+            "ethereum_address" => Some(Self::EthereumAddress),
+            "vin" => Some(Self::Vin),
+            "mac_address" => Some(Self::MacAddress),
+            "ipv6" => Some(Self::Ipv6),
+            "url" => Some(Self::Url),
+            "username" => Some(Self::Username),
+            "coordinates" => Some(Self::Coordinates),
+            "tax_id_ein" => Some(Self::TaxIdEin),
+            "tax_id_itin" => Some(Self::TaxIdItin),
             "person" => Some(Self::Person),
             "organization" | "org" => Some(Self::Organization),
             "address" => Some(Self::Address),
@@ -166,6 +209,79 @@ static RE_PASSPORT: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\b[A-Z]{1,2}\d{6,9}\b").expect("passport regex")
 });
 
+// ---------- Financial / Technical / Tax patterns (Task 6a) ----------
+// Patterns ported verbatim from the pre-consolidation NeuronEdge redaction-engine
+// detectors (`regex.rs` and `regex_extended.rs`). See task 6a report for source line refs.
+
+static RE_IBAN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}(?:[A-Z0-9]{0,16})?\b").expect("IBAN regex")
+});
+
+static RE_ROUTING_NUMBER: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:0[0-9]|1[0-2]|2[1-9]|3[0-2]|6[1-9]|7[0-2]|80)\d{7}\b")
+        .expect("routing number regex")
+});
+
+static RE_SWIFT_CODE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b").expect("SWIFT code regex")
+});
+
+static RE_BANK_ACCOUNT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8,17}\b").expect("bank account regex"));
+
+static RE_BANK_ACCOUNT_US: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8,17}\b").expect("US bank account regex"));
+
+static RE_BITCOIN_ADDRESS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}\b").expect("bitcoin address regex")
+});
+
+static RE_BITCOIN_BECH32: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\bbc1[ac-hj-np-z02-9]{39,59}\b").expect("bitcoin bech32 regex"));
+
+static RE_ETHEREUM_ADDRESS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\b0x[a-f0-9]{40}\b").expect("ethereum address regex"));
+
+static RE_VIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-HJ-NPR-Z0-9]{17}\b").expect("VIN regex"));
+
+static RE_MAC_ADDRESS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b").expect("MAC address regex")
+});
+
+static RE_IPV6: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|\b(?:[0-9a-f]{1,4}:){1,7}:\b|\b:(?::[0-9a-f]{1,4}){1,7}\b|\b(?:[0-9a-f]{1,4}:){1,6}:[0-9a-f]{1,4}\b")
+            .expect("IPv6 regex")
+});
+
+static RE_URL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\bhttps?://[a-z0-9](?:[a-z0-9._~:/?#\[\]@!$&'()*+,;=-]*[a-z0-9/])?|\bwww\.[a-z0-9](?:[a-z0-9._~:/?#\[\]@!$&'()*+,;=-]*[a-z0-9/])?\b")
+            .expect("URL regex")
+});
+
+static RE_USERNAME: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|[\s\(\[\{,;:!?/\-])@([a-zA-Z0-9_]{2,32})").expect("username regex")
+});
+
+static RE_COORDINATES_DECIMAL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:[+-]?(?:90|[0-8]?\d)(?:\.\d{1,8})?)[,\s]+[+-]?(?:180|1[0-7]\d|[0-9]{1,2})(?:\.\d{1,8})?")
+            .expect("decimal coordinates regex")
+});
+
+static RE_COORDINATES_DMS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:[0-8]?\d[dD][0-5]?\d[mM][0-5]?\d(?:\.\d+)?[sS][NSEWnsew]\s+(?:1[0-7]\d|[0-9]{1,2})[dD][0-5]?\d[mM][0-5]?\d(?:\.\d+)?[sS][NSEWnsew])")
+            .expect("DMS coordinates regex")
+});
+
+static RE_TAX_ID_EIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{2}-\d{7}\b").expect("tax ID EIN regex"));
+
+static RE_TAX_ID_ITIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b9\d{2}-\d{2}-\d{4}\b").expect("tax ID ITIN regex"));
+
+static RE_ITIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b9\d{2}-\d{2}-\d{4}\b").expect("ITIN regex"));
+
 /// All built-in entity patterns.
 pub fn builtin_patterns() -> Vec<EntityPattern> {
     vec![
@@ -227,6 +343,115 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
             entity_type: EntityType::Passport,
             regex: &RE_PASSPORT,
             confidence: 0.5,
+            validator: None,
+        },
+        // -- Financial / Technical / Tax patterns (Task 6a) --
+        EntityPattern {
+            entity_type: EntityType::Iban,
+            regex: &RE_IBAN,
+            confidence: 0.85,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::RoutingNumber,
+            regex: &RE_ROUTING_NUMBER,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::SwiftCode,
+            regex: &RE_SWIFT_CODE,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::BankAccount,
+            regex: &RE_BANK_ACCOUNT,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::BankAccount,
+            regex: &RE_BANK_ACCOUNT_US,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::BitcoinAddress,
+            regex: &RE_BITCOIN_ADDRESS,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::BitcoinAddress,
+            regex: &RE_BITCOIN_BECH32,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::EthereumAddress,
+            regex: &RE_ETHEREUM_ADDRESS,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Vin,
+            regex: &RE_VIN,
+            confidence: 0.6,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::MacAddress,
+            regex: &RE_MAC_ADDRESS,
+            confidence: 0.85,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Ipv6,
+            regex: &RE_IPV6,
+            confidence: 0.6,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Url,
+            regex: &RE_URL,
+            confidence: 0.5,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Username,
+            regex: &RE_USERNAME,
+            confidence: 0.4,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Coordinates,
+            regex: &RE_COORDINATES_DECIMAL,
+            confidence: 0.5,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Coordinates,
+            regex: &RE_COORDINATES_DMS,
+            confidence: 0.5,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::TaxIdEin,
+            regex: &RE_TAX_ID_EIN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::TaxIdItin,
+            regex: &RE_TAX_ID_ITIN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::TaxIdItin,
+            regex: &RE_ITIN,
+            confidence: 0.8,
             validator: None,
         },
     ]
@@ -400,5 +625,172 @@ mod tests {
         assert!(EntityType::MedicalTerm.is_ner_only());
         assert!(EntityType::Location.is_ner_only());
         assert!(EntityType::NationalId.is_ner_only());
+    }
+
+    // ---- Task 6a: Financial / Technical / Tax regex patterns ----
+
+    #[test]
+    fn iban_detects_and_rejects() {
+        assert!(RE_IBAN.is_match("GB29NWBK60161331926819"));
+        assert!(RE_IBAN.is_match("DE89370400440532013000"));
+        assert!(!RE_IBAN.is_match("GB2"));
+    }
+
+    #[test]
+    fn routing_number_detects_and_rejects() {
+        assert!(RE_ROUTING_NUMBER.is_match("021000021"));
+        assert!(!RE_ROUTING_NUMBER.is_match("999999999")); // invalid prefix
+    }
+
+    #[test]
+    fn swift_code_detects_and_rejects() {
+        assert!(RE_SWIFT_CODE.is_match("DEUTDEDB"));
+        assert!(RE_SWIFT_CODE.is_match("DEUTDEDBXXX"));
+        assert!(!RE_SWIFT_CODE.is_match("DEUT"));
+    }
+
+    #[test]
+    fn bank_account_detects_and_rejects() {
+        assert!(RE_BANK_ACCOUNT.is_match("12345678901234567"));
+        assert!(RE_BANK_ACCOUNT_US.is_match("12345678901234567"));
+        assert!(!RE_BANK_ACCOUNT.is_match("1234567")); // too short
+    }
+
+    #[test]
+    fn bitcoin_address_detects_and_rejects() {
+        assert!(RE_BITCOIN_ADDRESS.is_match("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"));
+        assert!(RE_BITCOIN_BECH32.is_match("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"));
+        assert!(!RE_BITCOIN_ADDRESS.is_match("1abc"));
+    }
+
+    #[test]
+    fn ethereum_address_detects_and_rejects() {
+        assert!(RE_ETHEREUM_ADDRESS.is_match("0x1234567890abcdef1234567890abcdef12345678"));
+        assert!(RE_ETHEREUM_ADDRESS.is_match("0xABCDEF1234567890ABCDEF1234567890ABCDEF12"));
+        assert!(!RE_ETHEREUM_ADDRESS.is_match("0x1234"));
+    }
+
+    #[test]
+    fn vin_detects_and_rejects() {
+        assert!(RE_VIN.is_match("1HGBH41JXMN109186"));
+        assert!(!RE_VIN.is_match("1HGBH41JXMN10918")); // 16 chars
+    }
+
+    #[test]
+    fn mac_address_detects_and_rejects() {
+        assert!(RE_MAC_ADDRESS.is_match("00:1A:2B:3C:4D:5E"));
+        assert!(RE_MAC_ADDRESS.is_match("AA-BB-CC-DD-EE-FF"));
+        assert!(!RE_MAC_ADDRESS.is_match("00:1A:2B:3C")); // too few octets
+    }
+
+    #[test]
+    fn ipv6_detects_and_rejects() {
+        assert!(RE_IPV6.is_match("2001:0db8:85a3:0000:0000:8a2e:0370:7334"));
+        assert!(!RE_IPV6.is_match("not-an-ipv6-address"));
+    }
+
+    #[test]
+    fn url_detects_and_rejects() {
+        assert!(RE_URL.is_match("https://example.com"));
+        assert!(RE_URL.is_match("www.example.com"));
+        assert!(!RE_URL.is_match("not a url here"));
+    }
+
+    #[test]
+    fn username_detects_and_rejects() {
+        assert!(RE_USERNAME.is_match("Follow @john_doe"));
+        assert!(!RE_USERNAME.is_match("no mention here"));
+    }
+
+    #[test]
+    fn coordinates_detects_and_rejects() {
+        assert!(RE_COORDINATES_DECIMAL.is_match("40.7128, -74.0060"));
+        assert!(RE_COORDINATES_DMS.is_match("40d42m46sN 74d0m22sW"));
+        assert!(!RE_COORDINATES_DECIMAL.is_match("no coords here"));
+    }
+
+    #[test]
+    fn tax_id_ein_detects_and_rejects() {
+        assert!(RE_TAX_ID_EIN.is_match("12-3456789"));
+        assert!(!RE_TAX_ID_EIN.is_match("12-345678")); // 6 digits after dash
+    }
+
+    #[test]
+    fn tax_id_itin_detects_and_rejects() {
+        assert!(RE_TAX_ID_ITIN.is_match("901-23-4567"));
+        assert!(RE_ITIN.is_match("901-23-4567"));
+        assert!(!RE_TAX_ID_ITIN.is_match("801-23-4567")); // does not start with 9
+    }
+
+    #[test]
+    fn task_6a_variants_parse_and_display() {
+        let cases = [
+            (EntityType::Iban, "iban"),
+            (EntityType::RoutingNumber, "routing_number"),
+            (EntityType::SwiftCode, "swift_code"),
+            (EntityType::BankAccount, "bank_account"),
+            (EntityType::BitcoinAddress, "bitcoin_address"),
+            (EntityType::EthereumAddress, "ethereum_address"),
+            (EntityType::Vin, "vin"),
+            (EntityType::MacAddress, "mac_address"),
+            (EntityType::Ipv6, "ipv6"),
+            (EntityType::Url, "url"),
+            (EntityType::Username, "username"),
+            (EntityType::Coordinates, "coordinates"),
+            (EntityType::TaxIdEin, "tax_id_ein"),
+            (EntityType::TaxIdItin, "tax_id_itin"),
+        ];
+        for (variant, label) in cases {
+            assert_eq!(variant.to_string(), label);
+            assert_eq!(EntityType::parse(label), Some(variant));
+        }
+    }
+
+    #[test]
+    fn task_6a_variants_are_regex_not_ner() {
+        for variant in [
+            EntityType::Iban,
+            EntityType::RoutingNumber,
+            EntityType::SwiftCode,
+            EntityType::BankAccount,
+            EntityType::BitcoinAddress,
+            EntityType::EthereumAddress,
+            EntityType::Vin,
+            EntityType::MacAddress,
+            EntityType::Ipv6,
+            EntityType::Url,
+            EntityType::Username,
+            EntityType::Coordinates,
+            EntityType::TaxIdEin,
+            EntityType::TaxIdItin,
+        ] {
+            assert!(!variant.is_ner_only());
+        }
+    }
+
+    #[test]
+    fn task_6a_patterns_registered_in_builtin() {
+        let patterns = builtin_patterns();
+        for variant in [
+            EntityType::Iban,
+            EntityType::RoutingNumber,
+            EntityType::SwiftCode,
+            EntityType::BankAccount,
+            EntityType::BitcoinAddress,
+            EntityType::EthereumAddress,
+            EntityType::Vin,
+            EntityType::MacAddress,
+            EntityType::Ipv6,
+            EntityType::Url,
+            EntityType::Username,
+            EntityType::Coordinates,
+            EntityType::TaxIdEin,
+            EntityType::TaxIdItin,
+        ] {
+            assert!(
+                patterns.iter().any(|p| p.entity_type == variant),
+                "missing builtin pattern for {variant:?}"
+            );
+        }
     }
 }
