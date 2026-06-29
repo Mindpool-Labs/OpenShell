@@ -43,6 +43,31 @@ pub enum EntityType {
     Coordinates,
     TaxIdEin,
     TaxIdItin,
+    // -- Additional regex-detected entity types (Healthcare) --
+    MedicalRecordNumber,
+    DiagnosisCode,
+    Prescription,
+    HealthPlanId,
+    Npi,
+    DeaNumber,
+    Ndc,
+    DeviceIdentifier,
+    MedicareId,
+    // -- Additional regex-detected entity types (International) --
+    UkNino,
+    UkNhs,
+    UkPassport,
+    AustraliaTfn,
+    CanadaSin,
+    CanadaPassport,
+    ArgentinaDni,
+    GermanyId,
+    GermanyPassport,
+    FranceInsee,
+    FranceCni,
+    NetherlandsBsn,
+    PolandPesel,
+    SpainSsn,
     // -- NER-only entity types (no regex pattern) --
     Person,
     Organization,
@@ -82,6 +107,29 @@ impl fmt::Display for EntityType {
             Self::Coordinates => write!(f, "coordinates"),
             Self::TaxIdEin => write!(f, "tax_id_ein"),
             Self::TaxIdItin => write!(f, "tax_id_itin"),
+            Self::MedicalRecordNumber => write!(f, "medical_record_number"),
+            Self::DiagnosisCode => write!(f, "diagnosis_code"),
+            Self::Prescription => write!(f, "prescription"),
+            Self::HealthPlanId => write!(f, "health_plan_id"),
+            Self::Npi => write!(f, "npi"),
+            Self::DeaNumber => write!(f, "dea_number"),
+            Self::Ndc => write!(f, "ndc"),
+            Self::DeviceIdentifier => write!(f, "device_identifier"),
+            Self::MedicareId => write!(f, "medicare_id"),
+            Self::UkNino => write!(f, "uk_nino"),
+            Self::UkNhs => write!(f, "uk_nhs"),
+            Self::UkPassport => write!(f, "uk_passport"),
+            Self::AustraliaTfn => write!(f, "australia_tfn"),
+            Self::CanadaSin => write!(f, "canada_sin"),
+            Self::CanadaPassport => write!(f, "canada_passport"),
+            Self::ArgentinaDni => write!(f, "argentina_dni"),
+            Self::GermanyId => write!(f, "germany_id"),
+            Self::GermanyPassport => write!(f, "germany_passport"),
+            Self::FranceInsee => write!(f, "france_insee"),
+            Self::FranceCni => write!(f, "france_cni"),
+            Self::NetherlandsBsn => write!(f, "netherlands_bsn"),
+            Self::PolandPesel => write!(f, "poland_pesel"),
+            Self::SpainSsn => write!(f, "spain_ssn"),
             Self::Person => write!(f, "person"),
             Self::Organization => write!(f, "organization"),
             Self::Address => write!(f, "address"),
@@ -122,6 +170,29 @@ impl EntityType {
             "coordinates" => Some(Self::Coordinates),
             "tax_id_ein" => Some(Self::TaxIdEin),
             "tax_id_itin" => Some(Self::TaxIdItin),
+            "medical_record_number" => Some(Self::MedicalRecordNumber),
+            "diagnosis_code" => Some(Self::DiagnosisCode),
+            "prescription" => Some(Self::Prescription),
+            "health_plan_id" => Some(Self::HealthPlanId),
+            "npi" => Some(Self::Npi),
+            "dea_number" => Some(Self::DeaNumber),
+            "ndc" => Some(Self::Ndc),
+            "device_identifier" => Some(Self::DeviceIdentifier),
+            "medicare_id" => Some(Self::MedicareId),
+            "uk_nino" => Some(Self::UkNino),
+            "uk_nhs" => Some(Self::UkNhs),
+            "uk_passport" => Some(Self::UkPassport),
+            "australia_tfn" => Some(Self::AustraliaTfn),
+            "canada_sin" => Some(Self::CanadaSin),
+            "canada_passport" => Some(Self::CanadaPassport),
+            "argentina_dni" => Some(Self::ArgentinaDni),
+            "germany_id" => Some(Self::GermanyId),
+            "germany_passport" => Some(Self::GermanyPassport),
+            "france_insee" => Some(Self::FranceInsee),
+            "france_cni" => Some(Self::FranceCni),
+            "netherlands_bsn" => Some(Self::NetherlandsBsn),
+            "poland_pesel" => Some(Self::PolandPesel),
+            "spain_ssn" => Some(Self::SpainSsn),
             "person" => Some(Self::Person),
             "organization" | "org" => Some(Self::Organization),
             "address" => Some(Self::Address),
@@ -281,6 +352,99 @@ static RE_TAX_ID_ITIN: LazyLock<Regex> =
 
 static RE_ITIN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b9\d{2}-\d{2}-\d{4}\b").expect("ITIN regex"));
+
+// ---------- Healthcare patterns (Task 6b) ----------
+// Patterns ported verbatim from the pre-consolidation NeuronEdge redaction-engine
+// detectors (`regex.rs` and `regex_extended.rs`).
+
+static RE_MEDICAL_RECORD_NUMBER: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?:MRN|MR#|Medical Record #)\s*[:=]?\s*[A-Za-z0-9]{6,10}")
+        .expect("medical record number regex")
+});
+
+static RE_DIAGNOSIS_CODE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d{1,2}(?:\.\d{1,2})?|\d{3}(?:\.\d{2})?)\b")
+        .expect("diagnosis code regex")
+});
+
+static RE_PRESCRIPTION: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\bRx\d{7,}\b|\b\d{5}-\d{4}-\d{2}\b").expect("prescription regex")
+});
+
+static RE_HEALTH_PLAN_ID: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z0-9]{10,20}\b").expect("health plan ID regex"));
+
+static RE_NPI: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b[12]\d{9}\b").expect("NPI regex"));
+
+static RE_DEA_NUMBER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]{2}\d{7}\b").expect("DEA number regex"));
+
+static RE_NDC: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{5}-\d{4}-\d{2}|\d{5}-\d{3}-\d{2}|\d{4}-\d{4}-\d{2}|\d{10,11})\b")
+        .expect("NDC regex")
+});
+
+static RE_DEVICE_IDENTIFIER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\(01\)\d{14}|\d{14})\b").expect("device identifier regex"));
+
+static RE_MEDICARE_ID: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[1-9][AC-HJKM-NP-RT-Y][AC-HJKM-NP-RT-Y0-9]\d[AC-HJKM-NP-RT-Y][AC-HJKM-NP-RT-Y0-9]\d[AC-HJKM-NP-RT-Y]{2}\d{2}\b")
+            .expect("Medicare ID regex")
+});
+
+// ---------- International patterns (Task 6b) ----------
+
+static RE_UK_NINO: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?i)\b[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][\s-]?\d{2}[\s-]?\d{2}[\s-]?\d{2}[\s-]?[A-D]\b",
+    )
+    .expect("UK NINO regex")
+});
+
+static RE_UK_NHS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{3}[\s-]?\d{3}[\s-]?\d{4}\b").expect("UK NHS regex"));
+
+static RE_UK_PASSPORT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("UK passport regex"));
+
+static RE_AUSTRALIA_TFN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b\d{3}[\s-]?\d{3}[\s-]?\d{2,3}\b").expect("Australia TFN regex")
+});
+
+static RE_CANADA_SIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{3}[\s-]?\d{3}[\s-]?\d{3}\b").expect("Canada SIN regex"));
+
+static RE_CANADA_PASSPORT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]{2}\d{6}\b").expect("Canada passport regex"));
+
+static RE_ARGENTINA_DNI: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,2}\.?\d{3}\.?\d{3}\b").expect("Argentina DNI regex"));
+
+static RE_GERMANY_ID: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[CFGHJKLMNPRTVWXYZ0-9]{9}\b").expect("Germany ID regex"));
+
+static RE_GERMANY_PASSPORT: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[CFGHJKLMNPRTVWXYZ]\d{8}|[A-Z0-9]{9,10})\b").expect("Germany passport regex")
+});
+
+static RE_FRANCE_INSEE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[12]\d{2}(?:0[1-9]|1[0-2]|[2-9][0-9])(?:0[1-9]|[1-8][0-9]|9[0-5]|2[AB])\d{3}\d{3}(?:\d{2})?\b")
+            .expect("France INSEE regex")
+});
+
+static RE_FRANCE_CNI: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z0-9]{12}\b").expect("France CNI regex"));
+
+static RE_NETHERLANDS_BSN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("Netherlands BSN regex"));
+
+static RE_POLAND_PESEL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b\d{2}(?:0[1-9]|1[0-2]|[2-8][1-9])(?:0[1-9]|[12][0-9]|3[01])\d{5}\b")
+        .expect("Poland PESEL regex")
+});
+
+static RE_SPAIN_SSN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{8}[A-Z]|[XYZ]\d{7}[A-Z])\b").expect("Spain SSN regex"));
 
 /// All built-in entity patterns.
 pub fn builtin_patterns() -> Vec<EntityPattern> {
@@ -451,6 +615,146 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
         EntityPattern {
             entity_type: EntityType::TaxIdItin,
             regex: &RE_ITIN,
+            confidence: 0.8,
+            validator: None,
+        },
+        // -- Healthcare patterns (Task 6b) --
+        EntityPattern {
+            entity_type: EntityType::MedicalRecordNumber,
+            regex: &RE_MEDICAL_RECORD_NUMBER,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DiagnosisCode,
+            regex: &RE_DIAGNOSIS_CODE,
+            confidence: 0.4,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Prescription,
+            regex: &RE_PRESCRIPTION,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::HealthPlanId,
+            regex: &RE_HEALTH_PLAN_ID,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Npi,
+            regex: &RE_NPI,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DeaNumber,
+            regex: &RE_DEA_NUMBER,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Ndc,
+            regex: &RE_NDC,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DeviceIdentifier,
+            regex: &RE_DEVICE_IDENTIFIER,
+            confidence: 0.6,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::MedicareId,
+            regex: &RE_MEDICARE_ID,
+            confidence: 0.8,
+            validator: None,
+        },
+        // -- International patterns (Task 6b) --
+        EntityPattern {
+            entity_type: EntityType::UkNino,
+            regex: &RE_UK_NINO,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::UkNhs,
+            regex: &RE_UK_NHS,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::UkPassport,
+            regex: &RE_UK_PASSPORT,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::AustraliaTfn,
+            regex: &RE_AUSTRALIA_TFN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::CanadaSin,
+            regex: &RE_CANADA_SIN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::CanadaPassport,
+            regex: &RE_CANADA_PASSPORT,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::ArgentinaDni,
+            regex: &RE_ARGENTINA_DNI,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::GermanyId,
+            regex: &RE_GERMANY_ID,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::GermanyPassport,
+            regex: &RE_GERMANY_PASSPORT,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::FranceInsee,
+            regex: &RE_FRANCE_INSEE,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::FranceCni,
+            regex: &RE_FRANCE_CNI,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::NetherlandsBsn,
+            regex: &RE_NETHERLANDS_BSN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::PolandPesel,
+            regex: &RE_POLAND_PESEL,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::SpainSsn,
+            regex: &RE_SPAIN_SSN,
             confidence: 0.8,
             validator: None,
         },
@@ -786,6 +1090,252 @@ mod tests {
             EntityType::Coordinates,
             EntityType::TaxIdEin,
             EntityType::TaxIdItin,
+        ] {
+            assert!(
+                patterns.iter().any(|p| p.entity_type == variant),
+                "missing builtin pattern for {variant:?}"
+            );
+        }
+    }
+
+    // ---- Task 6b: Healthcare regex patterns ----
+
+    #[test]
+    fn medical_record_number_detects_and_rejects() {
+        assert!(RE_MEDICAL_RECORD_NUMBER.is_match("MRN123456"));
+        assert!(RE_MEDICAL_RECORD_NUMBER.is_match("MR#00123456"));
+        assert!(!RE_MEDICAL_RECORD_NUMBER.is_match("MRN12345")); // 5 chars, needs 6-10
+    }
+
+    #[test]
+    fn diagnosis_code_detects_and_rejects() {
+        assert!(RE_DIAGNOSIS_CODE.is_match("E11.9"));
+        assert!(RE_DIAGNOSIS_CODE.is_match("250.00"));
+        assert!(!RE_DIAGNOSIS_CODE.is_match("not a code"));
+    }
+
+    #[test]
+    fn prescription_detects_and_rejects() {
+        assert!(RE_PRESCRIPTION.is_match("Rx1234567"));
+        assert!(RE_PRESCRIPTION.is_match("12345-6789-01"));
+        assert!(!RE_PRESCRIPTION.is_match("Rx123456")); // 6 digits, needs 7+
+    }
+
+    #[test]
+    fn health_plan_id_detects_and_rejects() {
+        assert!(RE_HEALTH_PLAN_ID.is_match("ABCDEF1234")); // 10 alphanumeric
+        assert!(!RE_HEALTH_PLAN_ID.is_match("ABC123")); // too short
+    }
+
+    #[test]
+    fn npi_detects_and_rejects() {
+        assert!(RE_NPI.is_match("1234567890"));
+        assert!(!RE_NPI.is_match("3234567890")); // starts with 3
+    }
+
+    #[test]
+    fn dea_number_detects_and_rejects() {
+        assert!(RE_DEA_NUMBER.is_match("AB1234567"));
+        assert!(!RE_DEA_NUMBER.is_match("A1234567")); // 1 letter
+    }
+
+    #[test]
+    fn ndc_detects_and_rejects() {
+        assert!(RE_NDC.is_match("12345-6789-01"));
+        assert!(RE_NDC.is_match("0123456789")); // 10 digits
+        assert!(!RE_NDC.is_match("12345"));
+    }
+
+    #[test]
+    fn device_identifier_detects_and_rejects() {
+        assert!(RE_DEVICE_IDENTIFIER.is_match("12345678901234")); // 14 digits
+        assert!(!RE_DEVICE_IDENTIFIER.is_match("1234567890123")); // 13 digits
+    }
+
+    #[test]
+    fn medicare_id_detects_and_rejects() {
+        assert!(RE_MEDICARE_ID.is_match("1CA2CA3CA45"));
+        assert!(!RE_MEDICARE_ID.is_match("1BA2CA3CA45")); // 'B' excluded at position 2
+    }
+
+    // ---- Task 6b: International regex patterns ----
+
+    #[test]
+    fn uk_nino_detects_and_rejects() {
+        assert!(RE_UK_NINO.is_match("AC123456C"));
+        assert!(!RE_UK_NINO.is_match("AA12345")); // too few digits, no trailing letter
+    }
+
+    #[test]
+    fn uk_nhs_detects_and_rejects() {
+        assert!(RE_UK_NHS.is_match("123 456 7890"));
+        assert!(!RE_UK_NHS.is_match("123456789")); // 9 digits
+    }
+
+    #[test]
+    fn uk_passport_detects_and_rejects() {
+        assert!(RE_UK_PASSPORT.is_match("123456789"));
+        assert!(!RE_UK_PASSPORT.is_match("12345678")); // 8 digits
+    }
+
+    #[test]
+    fn australia_tfn_detects_and_rejects() {
+        assert!(RE_AUSTRALIA_TFN.is_match("123 456 789"));
+        assert!(!RE_AUSTRALIA_TFN.is_match("1234567")); // 7 digits
+    }
+
+    #[test]
+    fn canada_sin_detects_and_rejects() {
+        assert!(RE_CANADA_SIN.is_match("123-456-789"));
+        assert!(!RE_CANADA_SIN.is_match("12345678")); // 8 digits
+    }
+
+    #[test]
+    fn canada_passport_detects_and_rejects() {
+        assert!(RE_CANADA_PASSPORT.is_match("AB123456"));
+        assert!(!RE_CANADA_PASSPORT.is_match("A123456")); // 1 letter
+    }
+
+    #[test]
+    fn argentina_dni_detects_and_rejects() {
+        assert!(RE_ARGENTINA_DNI.is_match("12.345.678"));
+        assert!(!RE_ARGENTINA_DNI.is_match("12345")); // too short
+    }
+
+    #[test]
+    fn germany_id_detects_and_rejects() {
+        assert!(RE_GERMANY_ID.is_match("CFGHJKLMN"));
+        assert!(!RE_GERMANY_ID.is_match("12345678")); // 8 chars
+    }
+
+    #[test]
+    fn germany_passport_detects_and_rejects() {
+        assert!(RE_GERMANY_PASSPORT.is_match("C12345678"));
+        assert!(!RE_GERMANY_PASSPORT.is_match("C1234567")); // C + 7 digits
+    }
+
+    #[test]
+    fn france_insee_detects_and_rejects() {
+        assert!(RE_FRANCE_INSEE.is_match("128017512345678"));
+        assert!(!RE_FRANCE_INSEE.is_match("123456789012")); // 12 digits, needs 13+
+    }
+
+    #[test]
+    fn france_cni_detects_and_rejects() {
+        assert!(RE_FRANCE_CNI.is_match("AB1234567890")); // 12 alphanumeric
+        assert!(!RE_FRANCE_CNI.is_match("AB12345678")); // 10 chars
+    }
+
+    #[test]
+    fn netherlands_bsn_detects_and_rejects() {
+        assert!(RE_NETHERLANDS_BSN.is_match("123456782"));
+        assert!(!RE_NETHERLANDS_BSN.is_match("12345678")); // 8 digits
+    }
+
+    #[test]
+    fn poland_pesel_detects_and_rejects() {
+        assert!(RE_POLAND_PESEL.is_match("90010112345"));
+        assert!(!RE_POLAND_PESEL.is_match("9001011234")); // 10 digits
+    }
+
+    #[test]
+    fn spain_ssn_detects_and_rejects() {
+        assert!(RE_SPAIN_SSN.is_match("12345678Z"));
+        assert!(RE_SPAIN_SSN.is_match("X1234567Z"));
+        assert!(!RE_SPAIN_SSN.is_match("1234567Z")); // 7 digits
+    }
+
+    #[test]
+    fn task_6b_variants_parse_and_display() {
+        let cases = [
+            (EntityType::MedicalRecordNumber, "medical_record_number"),
+            (EntityType::DiagnosisCode, "diagnosis_code"),
+            (EntityType::Prescription, "prescription"),
+            (EntityType::HealthPlanId, "health_plan_id"),
+            (EntityType::Npi, "npi"),
+            (EntityType::DeaNumber, "dea_number"),
+            (EntityType::Ndc, "ndc"),
+            (EntityType::DeviceIdentifier, "device_identifier"),
+            (EntityType::MedicareId, "medicare_id"),
+            (EntityType::UkNino, "uk_nino"),
+            (EntityType::UkNhs, "uk_nhs"),
+            (EntityType::UkPassport, "uk_passport"),
+            (EntityType::AustraliaTfn, "australia_tfn"),
+            (EntityType::CanadaSin, "canada_sin"),
+            (EntityType::CanadaPassport, "canada_passport"),
+            (EntityType::ArgentinaDni, "argentina_dni"),
+            (EntityType::GermanyId, "germany_id"),
+            (EntityType::GermanyPassport, "germany_passport"),
+            (EntityType::FranceInsee, "france_insee"),
+            (EntityType::FranceCni, "france_cni"),
+            (EntityType::NetherlandsBsn, "netherlands_bsn"),
+            (EntityType::PolandPesel, "poland_pesel"),
+            (EntityType::SpainSsn, "spain_ssn"),
+        ];
+        for (variant, label) in cases {
+            assert_eq!(variant.to_string(), label);
+            assert_eq!(EntityType::parse(label), Some(variant));
+        }
+    }
+
+    #[test]
+    fn task_6b_variants_are_regex_not_ner() {
+        for variant in [
+            EntityType::MedicalRecordNumber,
+            EntityType::DiagnosisCode,
+            EntityType::Prescription,
+            EntityType::HealthPlanId,
+            EntityType::Npi,
+            EntityType::DeaNumber,
+            EntityType::Ndc,
+            EntityType::DeviceIdentifier,
+            EntityType::MedicareId,
+            EntityType::UkNino,
+            EntityType::UkNhs,
+            EntityType::UkPassport,
+            EntityType::AustraliaTfn,
+            EntityType::CanadaSin,
+            EntityType::CanadaPassport,
+            EntityType::ArgentinaDni,
+            EntityType::GermanyId,
+            EntityType::GermanyPassport,
+            EntityType::FranceInsee,
+            EntityType::FranceCni,
+            EntityType::NetherlandsBsn,
+            EntityType::PolandPesel,
+            EntityType::SpainSsn,
+        ] {
+            assert!(!variant.is_ner_only());
+        }
+    }
+
+    #[test]
+    fn task_6b_patterns_registered_in_builtin() {
+        let patterns = builtin_patterns();
+        for variant in [
+            EntityType::MedicalRecordNumber,
+            EntityType::DiagnosisCode,
+            EntityType::Prescription,
+            EntityType::HealthPlanId,
+            EntityType::Npi,
+            EntityType::DeaNumber,
+            EntityType::Ndc,
+            EntityType::DeviceIdentifier,
+            EntityType::MedicareId,
+            EntityType::UkNino,
+            EntityType::UkNhs,
+            EntityType::UkPassport,
+            EntityType::AustraliaTfn,
+            EntityType::CanadaSin,
+            EntityType::CanadaPassport,
+            EntityType::ArgentinaDni,
+            EntityType::GermanyId,
+            EntityType::GermanyPassport,
+            EntityType::FranceInsee,
+            EntityType::FranceCni,
+            EntityType::NetherlandsBsn,
+            EntityType::PolandPesel,
+            EntityType::SpainSsn,
         ] {
             assert!(
                 patterns.iter().any(|p| p.entity_type == variant),
