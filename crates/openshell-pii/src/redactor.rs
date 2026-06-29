@@ -5,17 +5,44 @@
 
 use crate::policy::PiiDetection;
 
+/// Redaction output format. `Redacted` is the historical default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RedactionFormat {
+    /// `[REDACTED:{entity_type}]` (historical behavior).
+    Redacted,
+    /// `[HASH:xxxxxxxx]` — truncated SHA-256 correlation token (Task 4).
+    Hash,
+    /// Realistic fake value of the same type (Task 5).
+    Synthetic,
+}
+
 /// Redact all detections in the body, processing right-to-left to preserve offsets.
 ///
 /// Returns the number of redactions applied.
 pub fn redact(body: &mut Vec<u8>, detections: &[PiiDetection]) -> usize {
+    redact_with(RedactionFormat::Redacted, body, detections)
+}
+
+/// Redact all detections in `body` using the given [`RedactionFormat`], processing
+/// right-to-left to preserve offsets. Returns the number of redactions applied.
+pub fn redact_with(
+    format: RedactionFormat,
+    body: &mut Vec<u8>,
+    detections: &[PiiDetection],
+) -> usize {
     // Sort by span start descending so we replace right-to-left.
     let mut sorted: Vec<&PiiDetection> = detections.iter().collect();
     sorted.sort_by(|a, b| b.span.start.cmp(&a.span.start));
 
     let mut count = 0;
     for detection in sorted {
-        let replacement = format!("[REDACTED:{}]", detection.entity_type);
+        let replacement: String = match format {
+            RedactionFormat::Redacted => format!("[REDACTED:{}]", detection.entity_type),
+            // Replaced by real implementations in Tasks 4 and 5.
+            RedactionFormat::Hash | RedactionFormat::Synthetic => {
+                format!("[REDACTED:{}]", detection.entity_type)
+            }
+        };
         let start = detection.span.start;
         let end = detection.span.end.min(body.len());
         if start < end && start < body.len() {
@@ -70,5 +97,20 @@ mod tests {
         let count = redact(&mut body, &[]);
         assert_eq!(count, 0);
         assert_eq!(String::from_utf8_lossy(&body), "no pii here");
+    }
+
+    #[test]
+    fn redact_delegates_to_redacted_format() {
+        let mut body = b"SSN is 123-45-6789 here".to_vec();
+        let d = vec![detection(EntityType::Ssn, 7, 18, "123-45-6789")];
+        assert_eq!(redact(&mut body, &d), 1);
+        assert_eq!(String::from_utf8_lossy(&body), "SSN is [REDACTED:ssn] here");
+        // redact_with(Redacted) is identical:
+        let mut body2 = b"SSN is 123-45-6789 here".to_vec();
+        assert_eq!(redact_with(RedactionFormat::Redacted, &mut body2, &d), 1);
+        assert_eq!(
+            String::from_utf8_lossy(&body2),
+            "SSN is [REDACTED:ssn] here"
+        );
     }
 }
