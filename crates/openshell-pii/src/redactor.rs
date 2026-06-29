@@ -52,9 +52,8 @@ pub fn redact_with(
         let replacement: String = match format {
             RedactionFormat::Redacted => format!("[REDACTED:{}]", detection.entity_type),
             RedactionFormat::Hash => format!("[HASH:{}]", compute_hash(&detection.matched_text)),
-            // Replaced by the real implementation in Task 5.
             RedactionFormat::Synthetic => {
-                format!("[REDACTED:{}]", detection.entity_type)
+                crate::synthetic::generate(&detection.entity_type, &detection.matched_text)
             }
         };
         let start = detection.span.start;
@@ -157,5 +156,19 @@ mod tests {
         let s = String::from_utf8_lossy(&body);
         assert!(s.starts_with("Contact [HASH:") && s.ends_with("] now"));
         assert!(!s.contains("john@example.com"));
+    }
+
+    #[test]
+    fn redact_with_synthetic_is_deterministic() {
+        let d = vec![detection(EntityType::Email, 0, 16, "john@example.com")];
+        let mut b1 = b"john@example.com".to_vec();
+        let mut b2 = b"john@example.com".to_vec();
+        redact_with(RedactionFormat::Synthetic, &mut b1, &d);
+        redact_with(RedactionFormat::Synthetic, &mut b2, &d);
+        assert_eq!(String::from_utf8_lossy(&b1), String::from_utf8_lossy(&b2));
+        // Synthetic email must contain an @ and not echo the original:
+        let out = String::from_utf8_lossy(&b1);
+        assert!(out.contains('@'));
+        assert!(!out.contains("john@example.com"));
     }
 }

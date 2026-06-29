@@ -17,6 +17,7 @@ mod engine;
 mod entities;
 mod policy;
 mod redactor;
+mod synthetic;
 
 pub mod validators;
 
