@@ -4,6 +4,7 @@
 //! PII redaction — replaces matched text with redaction tokens.
 
 use crate::policy::PiiDetection;
+use sha2::{Digest, Sha256};
 
 /// Redaction output format. `Redacted` is the historical default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,6 +24,18 @@ pub fn redact(body: &mut Vec<u8>, detections: &[PiiDetection]) -> usize {
     redact_with(RedactionFormat::Redacted, body, detections)
 }
 
+/// Truncated SHA-256 (first 4 bytes → 8 lowercase hex chars).
+/// Deterministic, non-reversible. Ported from `NeuronEdge` `redactors/hash.rs`.
+pub fn compute_hash(input: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(input.as_bytes());
+    let result = hasher.finalize();
+    format!(
+        "{:02x}{:02x}{:02x}{:02x}",
+        result[0], result[1], result[2], result[3]
+    )
+}
+
 /// Redact all detections in `body` using the given [`RedactionFormat`], processing
 /// right-to-left to preserve offsets. Returns the number of redactions applied.
 pub fn redact_with(
@@ -38,8 +51,9 @@ pub fn redact_with(
     for detection in sorted {
         let replacement: String = match format {
             RedactionFormat::Redacted => format!("[REDACTED:{}]", detection.entity_type),
-            // Replaced by real implementations in Tasks 4 and 5.
-            RedactionFormat::Hash | RedactionFormat::Synthetic => {
+            RedactionFormat::Hash => format!("[HASH:{}]", compute_hash(&detection.matched_text)),
+            // Replaced by the real implementation in Task 5.
+            RedactionFormat::Synthetic => {
                 format!("[REDACTED:{}]", detection.entity_type)
             }
         };
@@ -112,5 +126,36 @@ mod tests {
             String::from_utf8_lossy(&body2),
             "SSN is [REDACTED:ssn] here"
         );
+    }
+
+    #[test]
+    fn hash_is_deterministic_and_8_hex() {
+        let h1 = compute_hash("john@example.com");
+        let h2 = compute_hash("john@example.com");
+        assert_eq!(h1, h2);
+        assert_eq!(h1.len(), 8);
+        assert!(
+            h1.chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_uppercase())
+        );
+    }
+
+    #[test]
+    fn hash_distinct_inputs_differ() {
+        assert_ne!(
+            compute_hash("john@example.com"),
+            compute_hash("jane@example.com")
+        );
+    }
+
+    #[test]
+    fn redact_with_hash_emits_hash_token() {
+        let mut body = b"Contact john@example.com now".to_vec();
+        let d = vec![detection(EntityType::Email, 8, 24, "john@example.com")];
+        let n = redact_with(RedactionFormat::Hash, &mut body, &d);
+        assert_eq!(n, 1);
+        let s = String::from_utf8_lossy(&body);
+        assert!(s.starts_with("Contact [HASH:") && s.ends_with("] now"));
+        assert!(!s.contains("john@example.com"));
     }
 }
