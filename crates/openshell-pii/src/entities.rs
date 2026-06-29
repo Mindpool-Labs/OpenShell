@@ -166,32 +166,6 @@ static RE_PASSPORT: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\b[A-Z]{1,2}\d{6,9}\b").expect("passport regex")
 });
 
-/// Luhn algorithm for credit card validation.
-fn luhn_check(digits_str: &str) -> bool {
-    let digits: Vec<u8> = digits_str
-        .chars()
-        .filter(|c| c.is_ascii_digit())
-        .filter_map(|c| c.to_digit(10).map(|d| d as u8))
-        .collect();
-    if digits.len() < 13 || digits.len() > 19 {
-        return false;
-    }
-    let mut sum: u32 = 0;
-    let mut double = false;
-    for &d in digits.iter().rev() {
-        let mut val = u32::from(d);
-        if double {
-            val *= 2;
-            if val > 9 {
-                val -= 9;
-            }
-        }
-        sum += val;
-        double = !double;
-    }
-    sum % 10 == 0
-}
-
 /// All built-in entity patterns.
 pub fn builtin_patterns() -> Vec<EntityPattern> {
     vec![
@@ -205,7 +179,7 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
             entity_type: EntityType::CreditCard,
             regex: &RE_CREDIT_CARD,
             confidence: 0.95,
-            validator: Some(luhn_check),
+            validator: Some(crate::validators::luhn),
         },
         EntityPattern {
             entity_type: EntityType::Email,
@@ -278,15 +252,15 @@ mod tests {
     // ---- Credit card + Luhn ----
     #[test]
     fn credit_card_luhn_valid() {
-        assert!(luhn_check("4111111111111111")); // Visa test
-        assert!(luhn_check("5500000000000004")); // MC test
-        assert!(luhn_check("378282246310005")); // Amex test
+        assert!(crate::validators::luhn("4111111111111111")); // Visa test
+        assert!(crate::validators::luhn("5500000000000004")); // MC test
+        assert!(crate::validators::luhn("378282246310005")); // Amex test
     }
 
     #[test]
     fn credit_card_luhn_invalid() {
-        assert!(!luhn_check("4111111111111112"));
-        assert!(!luhn_check("1234567890"));
+        assert!(!crate::validators::luhn("4111111111111112"));
+        assert!(!crate::validators::luhn("1234567890"));
     }
 
     // ---- Email ----

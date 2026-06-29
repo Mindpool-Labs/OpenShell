@@ -18,6 +18,8 @@ mod entities;
 mod policy;
 mod redactor;
 
+pub mod validators;
+
 #[cfg(feature = "ner")]
 pub mod ner_client;
 
