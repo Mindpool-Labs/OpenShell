@@ -68,6 +68,8 @@ pub enum EntityType {
     NetherlandsBsn,
     PolandPesel,
     SpainSsn,
+    // -- Additional regex-detected entity types (Driver License) --
+    DriverLicense,
     // -- NER-only entity types (no regex pattern) --
     Person,
     Organization,
@@ -130,6 +132,7 @@ impl fmt::Display for EntityType {
             Self::NetherlandsBsn => write!(f, "netherlands_bsn"),
             Self::PolandPesel => write!(f, "poland_pesel"),
             Self::SpainSsn => write!(f, "spain_ssn"),
+            Self::DriverLicense => write!(f, "driver_license"),
             Self::Person => write!(f, "person"),
             Self::Organization => write!(f, "organization"),
             Self::Address => write!(f, "address"),
@@ -193,6 +196,7 @@ impl EntityType {
             "netherlands_bsn" => Some(Self::NetherlandsBsn),
             "poland_pesel" => Some(Self::PolandPesel),
             "spain_ssn" => Some(Self::SpainSsn),
+            "driver_license" => Some(Self::DriverLicense),
             "person" => Some(Self::Person),
             "organization" | "org" => Some(Self::Organization),
             "address" => Some(Self::Address),
@@ -445,6 +449,189 @@ static RE_POLAND_PESEL: LazyLock<Regex> = LazyLock::new(|| {
 
 static RE_SPAIN_SSN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b(?:\d{8}[A-Z]|[XYZ]\d{7}[A-Z])\b").expect("Spain SSN regex"));
+
+// ---------- Driver license patterns (Task 6c) ----------
+// Patterns ported verbatim from the pre-consolidation NeuronEdge redaction-engine
+// detectors (`regex.rs` and `regex_extended.rs`). These are low-discrimination
+// patterns (many are generic `\d{N}`), so they are registered at confidence 0.3.
+
+// Generic + state-specific patterns (regex.rs)
+static RE_DRIVER_LICENSE_GENERIC: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[A-Z]\d{7,8}\b|\b[A-Z]{2}\d{6,7}\b|\b\d{7,9}\b")
+        .expect("driver license generic regex")
+});
+
+static RE_DRIVER_LICENSE_CA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{7}\b").expect("driver license CA regex"));
+
+static RE_DRIVER_LICENSE_NY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{8}\b").expect("driver license NY regex"));
+
+static RE_DRIVER_LICENSE_TX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8}\b").expect("driver license TX regex"));
+
+static RE_DRIVER_LICENSE_FL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{5,6}\b").expect("driver license FL regex"));
+
+// US state patterns (regex_extended.rs): 50 states + DC
+static RE_DL_ALABAMA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7}\b").expect("DL Alabama regex"));
+
+static RE_DL_ALASKA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,7}\b").expect("DL Alaska regex"));
+
+static RE_DL_ARIZONA: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d{8}|[A-Z]{2}\d{2,5}[A-Z0-9]*|\d{9})\b").expect("DL Arizona regex")
+});
+
+static RE_DL_ARKANSAS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{4,9}\b").expect("DL Arkansas regex"));
+
+static RE_DL_CALIFORNIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{7}\b").expect("DL California regex"));
+
+static RE_DL_COLORADO: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{9}|[A-Z]\d{3,6}[A-Z]\d{2,5})\b").expect("DL Colorado regex")
+});
+
+static RE_DL_CONNECTICUT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("DL Connecticut regex"));
+
+static RE_DL_DELAWARE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,7}\b").expect("DL Delaware regex"));
+
+static RE_DL_DC: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{7}|\d{9})\b").expect("DL DC regex"));
+
+static RE_DL_FLORIDA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{12}\b").expect("DL Florida regex"));
+
+static RE_DL_GEORGIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7,9}\b").expect("DL Georgia regex"));
+
+static RE_DL_HAWAII: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8}|\d{9})\b").expect("DL Hawaii regex"));
+
+static RE_DL_IDAHO: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]{2}\d{6}[A-Z]|\d{9})\b").expect("DL Idaho regex"));
+
+static RE_DL_ILLINOIS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{11,12}\b").expect("DL Illinois regex"));
+
+static RE_DL_INDIANA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{9}|\d{9,10})\b").expect("DL Indiana regex"));
+
+static RE_DL_IOWA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z0-9]{9}|\d{3}[A-Z]{2}\d{4})\b").expect("DL Iowa regex"));
+
+static RE_DL_KANSAS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d[A-Z]\d[A-Z]|K\d{8}|\d{9})\b").expect("DL Kansas regex")
+});
+
+static RE_DL_KENTUCKY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8,9}|\d{9})\b").expect("DL Kentucky regex"));
+
+static RE_DL_LOUISIANA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,9}\b").expect("DL Louisiana regex"));
+
+static RE_DL_MAINE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7}X?\b").expect("DL Maine regex"));
+
+static RE_DL_MARYLAND: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{12}\b").expect("DL Maryland regex"));
+
+static RE_DL_MASSACHUSETTS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8}|\d{9})\b").expect("DL Massachusetts regex"));
+
+static RE_DL_MICHIGAN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{10,12}\b").expect("DL Michigan regex"));
+
+static RE_DL_MINNESOTA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{12}\b").expect("DL Minnesota regex"));
+
+static RE_DL_MISSISSIPPI: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("DL Mississippi regex"));
+
+static RE_DL_MISSOURI: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d{5,9}|\d{9}[A-Z]\d|\d{9})\b").expect("DL Missouri regex")
+});
+
+static RE_DL_MONTANA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{9}|[A-Z0-9]{13})\b").expect("DL Montana regex"));
+
+static RE_DL_NEBRASKA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{3,8}\b").expect("DL Nebraska regex"));
+
+static RE_DL_NEVADA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{10}|\d{12}|X\d{8})\b").expect("DL Nevada regex"));
+
+static RE_DL_NEW_HAMPSHIRE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{2}[A-Z]{3}\d{5}\b").expect("DL New Hampshire regex"));
+
+static RE_DL_NEW_JERSEY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{14}\b").expect("DL New Jersey regex"));
+
+static RE_DL_NEW_MEXICO: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8,9}\b").expect("DL New Mexico regex"));
+
+static RE_DL_NEW_YORK: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{9}|[A-Z]\d{7}[A-Z]\d|[A-Z]\d{18})\b").expect("DL New York regex")
+});
+
+static RE_DL_NORTH_CAROLINA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,12}\b").expect("DL North Carolina regex"));
+
+static RE_DL_NORTH_DAKOTA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]{3}\d{6}|\d{9})\b").expect("DL North Dakota regex"));
+
+static RE_DL_OHIO: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]{2}\d{6}|\d{8})\b").expect("DL Ohio regex"));
+
+static RE_DL_OKLAHOMA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{9}|\d{9})\b").expect("DL Oklahoma regex"));
+
+static RE_DL_OREGON: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,9}\b").expect("DL Oregon regex"));
+
+static RE_DL_PENNSYLVANIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8}\b").expect("DL Pennsylvania regex"));
+
+static RE_DL_RHODE_ISLAND: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{7}|[A-Z]\d{6})\b").expect("DL Rhode Island regex"));
+
+static RE_DL_SOUTH_CAROLINA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{5,11}\b").expect("DL South Carolina regex"));
+
+static RE_DL_SOUTH_DAKOTA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{6,10}|\d{12})\b").expect("DL South Dakota regex"));
+
+static RE_DL_TENNESSEE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7,9}\b").expect("DL Tennessee regex"));
+
+static RE_DL_TEXAS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7,8}\b").expect("DL Texas regex"));
+
+static RE_DL_UTAH: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{4,10}\b").expect("DL Utah regex"));
+
+static RE_DL_VERMONT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{8}|\d{7}A)\b").expect("DL Vermont regex"));
+
+static RE_DL_VIRGINIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8,11}|\d{9})\b").expect("DL Virginia regex"));
+
+static RE_DL_WASHINGTON: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]{1,7}[A-Z0-9]{5}\b").expect("DL Washington regex"));
+
+static RE_DL_WEST_VIRGINIA: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{7}|[A-Z]{1,2}\d{5,6})\b").expect("DL West Virginia regex")
+});
+
+static RE_DL_WISCONSIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{13}\b").expect("DL Wisconsin regex"));
+
+static RE_DL_WYOMING: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9,10}\b").expect("DL Wyoming regex"));
 
 /// All built-in entity patterns.
 pub fn builtin_patterns() -> Vec<EntityPattern> {
@@ -756,6 +943,344 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
             entity_type: EntityType::SpainSsn,
             regex: &RE_SPAIN_SSN,
             confidence: 0.8,
+            validator: None,
+        },
+        // -- Driver license patterns (Task 6c) --
+        // Low confidence (0.3): these are low-discrimination patterns (many generic \d{N}).
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_GENERIC,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_CA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_NY,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_TX,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_FL,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ALABAMA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ALASKA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ARIZONA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ARKANSAS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_CALIFORNIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_COLORADO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_CONNECTICUT,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_DELAWARE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_DC,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_FLORIDA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_GEORGIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_HAWAII,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_IDAHO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ILLINOIS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_INDIANA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_IOWA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_KANSAS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_KENTUCKY,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_LOUISIANA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MAINE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MARYLAND,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MASSACHUSETTS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MICHIGAN,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MINNESOTA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MISSISSIPPI,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MISSOURI,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MONTANA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEBRASKA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEVADA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_HAMPSHIRE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_JERSEY,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_MEXICO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_YORK,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NORTH_CAROLINA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NORTH_DAKOTA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_OHIO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_OKLAHOMA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_OREGON,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_PENNSYLVANIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_RHODE_ISLAND,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_SOUTH_CAROLINA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_SOUTH_DAKOTA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_TENNESSEE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_TEXAS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_UTAH,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_VERMONT,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_VIRGINIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WASHINGTON,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WEST_VIRGINIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WISCONSIN,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WYOMING,
+            confidence: 0.3,
             validator: None,
         },
     ]
@@ -1342,5 +1867,205 @@ mod tests {
                 "missing builtin pattern for {variant:?}"
             );
         }
+    }
+
+    // ---- Task 6c: Driver license regex patterns ----
+    //
+    // Data-driven test: one table row per ported source constant, asserting each
+    // compiled regex matches its representative positive sample and rejects a
+    // clearly-non-matching negative (lowercase, no digits, no uppercase runs).
+    // Negative samples are intentionally uniform: every DL pattern requires a
+    // digit run or uppercase letters, so a lowercase/digit-free string cannot
+    // match any of them — the positive samples carry the transcription-correctness
+    // signal. Source line refs: regex.rs (DRIVER_LICENSE_*) and
+    // regex_extended.rs (DL_*) in the pre-consolidation redaction-engine.
+
+    static DL_CASES: &[(&str, &LazyLock<Regex>, &str, &str)] = &[
+        // regex.rs
+        (
+            "GENERIC",
+            &RE_DRIVER_LICENSE_GENERIC,
+            "A12345678",
+            "not-a-license",
+        ),
+        ("CA", &RE_DRIVER_LICENSE_CA, "A1234567", "not-a-license"),
+        ("NY", &RE_DRIVER_LICENSE_NY, "A12345678", "not-a-license"),
+        ("TX", &RE_DRIVER_LICENSE_TX, "12345678", "not-a-license"),
+        ("FL", &RE_DRIVER_LICENSE_FL, "A123456", "not-a-license"),
+        // regex_extended.rs (50 states + DC)
+        ("ALABAMA", &RE_DL_ALABAMA, "1234567", "not-a-license"),
+        ("ALASKA", &RE_DL_ALASKA, "1234567", "not-a-license"),
+        ("ARIZONA", &RE_DL_ARIZONA, "A12345678", "not-a-license"),
+        ("ARKANSAS", &RE_DL_ARKANSAS, "1234567", "not-a-license"),
+        ("CALIFORNIA", &RE_DL_CALIFORNIA, "A1234567", "not-a-license"),
+        ("COLORADO", &RE_DL_COLORADO, "123456789", "not-a-license"),
+        (
+            "CONNECTICUT",
+            &RE_DL_CONNECTICUT,
+            "123456789",
+            "not-a-license",
+        ),
+        ("DELAWARE", &RE_DL_DELAWARE, "1234567", "not-a-license"),
+        ("DC", &RE_DL_DC, "1234567", "not-a-license"),
+        ("FLORIDA", &RE_DL_FLORIDA, "A123456789012", "not-a-license"),
+        ("GEORGIA", &RE_DL_GEORGIA, "12345678", "not-a-license"),
+        ("HAWAII", &RE_DL_HAWAII, "A12345678", "not-a-license"),
+        ("IDAHO", &RE_DL_IDAHO, "AB123456C", "not-a-license"),
+        (
+            "ILLINOIS",
+            &RE_DL_ILLINOIS,
+            "A123456789012",
+            "not-a-license",
+        ),
+        ("INDIANA", &RE_DL_INDIANA, "A123456789", "not-a-license"),
+        ("IOWA", &RE_DL_IOWA, "123AB6789", "not-a-license"),
+        ("KANSAS", &RE_DL_KANSAS, "K12345678", "not-a-license"),
+        ("KENTUCKY", &RE_DL_KENTUCKY, "A12345678", "not-a-license"),
+        ("LOUISIANA", &RE_DL_LOUISIANA, "123456789", "not-a-license"),
+        ("MAINE", &RE_DL_MAINE, "1234567", "not-a-license"),
+        (
+            "MARYLAND",
+            &RE_DL_MARYLAND,
+            "A123456789012",
+            "not-a-license",
+        ),
+        (
+            "MASSACHUSETTS",
+            &RE_DL_MASSACHUSETTS,
+            "A12345678",
+            "not-a-license",
+        ),
+        ("MICHIGAN", &RE_DL_MICHIGAN, "A1234567890", "not-a-license"),
+        (
+            "MINNESOTA",
+            &RE_DL_MINNESOTA,
+            "A123456789012",
+            "not-a-license",
+        ),
+        (
+            "MISSISSIPPI",
+            &RE_DL_MISSISSIPPI,
+            "123456789",
+            "not-a-license",
+        ),
+        ("MISSOURI", &RE_DL_MISSOURI, "A12345678", "not-a-license"),
+        ("MONTANA", &RE_DL_MONTANA, "123456789", "not-a-license"),
+        ("NEBRASKA", &RE_DL_NEBRASKA, "A1234567", "not-a-license"),
+        ("NEVADA", &RE_DL_NEVADA, "X12345678", "not-a-license"),
+        (
+            "NEW_HAMPSHIRE",
+            &RE_DL_NEW_HAMPSHIRE,
+            "12ABC34567",
+            "not-a-license",
+        ),
+        (
+            "NEW_JERSEY",
+            &RE_DL_NEW_JERSEY,
+            "A12345678901234",
+            "not-a-license",
+        ),
+        ("NEW_MEXICO", &RE_DL_NEW_MEXICO, "12345678", "not-a-license"),
+        ("NEW_YORK", &RE_DL_NEW_YORK, "123456789", "not-a-license"),
+        (
+            "NORTH_CAROLINA",
+            &RE_DL_NORTH_CAROLINA,
+            "123456789",
+            "not-a-license",
+        ),
+        (
+            "NORTH_DAKOTA",
+            &RE_DL_NORTH_DAKOTA,
+            "ABC123456",
+            "not-a-license",
+        ),
+        ("OHIO", &RE_DL_OHIO, "AB123456", "not-a-license"),
+        ("OKLAHOMA", &RE_DL_OKLAHOMA, "A123456789", "not-a-license"),
+        ("OREGON", &RE_DL_OREGON, "123456789", "not-a-license"),
+        (
+            "PENNSYLVANIA",
+            &RE_DL_PENNSYLVANIA,
+            "12345678",
+            "not-a-license",
+        ),
+        (
+            "RHODE_ISLAND",
+            &RE_DL_RHODE_ISLAND,
+            "1234567",
+            "not-a-license",
+        ),
+        (
+            "SOUTH_CAROLINA",
+            &RE_DL_SOUTH_CAROLINA,
+            "12345678",
+            "not-a-license",
+        ),
+        (
+            "SOUTH_DAKOTA",
+            &RE_DL_SOUTH_DAKOTA,
+            "1234567",
+            "not-a-license",
+        ),
+        ("TENNESSEE", &RE_DL_TENNESSEE, "12345678", "not-a-license"),
+        ("TEXAS", &RE_DL_TEXAS, "12345678", "not-a-license"),
+        ("UTAH", &RE_DL_UTAH, "12345678", "not-a-license"),
+        ("VERMONT", &RE_DL_VERMONT, "12345678", "not-a-license"),
+        ("VIRGINIA", &RE_DL_VIRGINIA, "A12345678", "not-a-license"),
+        (
+            "WASHINGTON",
+            &RE_DL_WASHINGTON,
+            "ABCD12345",
+            "not-a-license",
+        ),
+        (
+            "WEST_VIRGINIA",
+            &RE_DL_WEST_VIRGINIA,
+            "1234567",
+            "not-a-license",
+        ),
+        (
+            "WISCONSIN",
+            &RE_DL_WISCONSIN,
+            "A1234567890123",
+            "not-a-license",
+        ),
+        ("WYOMING", &RE_DL_WYOMING, "123456789", "not-a-license"),
+    ];
+
+    #[test]
+    fn task_6c_driver_license_patterns_match_positives_reject_negatives() {
+        for (name, re, positive, negative) in DL_CASES {
+            assert!(
+                re.is_match(positive),
+                "DL pattern {name} should match positive sample {positive:?}"
+            );
+            assert!(
+                !re.is_match(negative),
+                "DL pattern {name} should not match negative sample {negative:?}"
+            );
+        }
+        // Sanity: ensure the table actually covers every ported pattern.
+        assert_eq!(DL_CASES.len(), 56);
+    }
+
+    #[test]
+    fn task_6c_driver_license_patterns_registered_in_builtin() {
+        let count = builtin_patterns()
+            .iter()
+            .filter(|p| p.entity_type == EntityType::DriverLicense)
+            .count();
+        assert_eq!(
+            count, 56,
+            "expected 56 DriverLicense builtin patterns, found {count}"
+        );
+    }
+
+    #[test]
+    fn task_6c_driver_license_parse_and_display_roundtrip() {
+        assert_eq!(EntityType::DriverLicense.to_string(), "driver_license");
+        assert_eq!(
+            EntityType::parse("driver_license"),
+            Some(EntityType::DriverLicense)
+        );
+        assert!(!EntityType::DriverLicense.is_ner_only());
     }
 }
