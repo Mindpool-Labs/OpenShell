@@ -428,9 +428,7 @@ fn generate_synthetic_ip_address(original: &str) -> String {
 
 /// Generate synthetic URL.
 ///
-/// Ported verbatim from `NeuronEdge` for completeness; `EntityType` currently has
-/// no `Url` variant so this is unreachable from [`generate`].
-#[allow(dead_code)]
+/// Dispatched from [`generate`] for [`EntityType::Url`].
 fn generate_synthetic_url(original: &str) -> String {
     let seed = hash_to_seed(original);
     let domains = &[
@@ -449,9 +447,7 @@ fn generate_synthetic_url(original: &str) -> String {
 
 /// Generate synthetic username.
 ///
-/// Ported verbatim from `NeuronEdge` for completeness; `EntityType` currently has
-/// no `Username` variant so this is unreachable from [`generate`].
-#[allow(dead_code)]
+/// Dispatched from [`generate`] for [`EntityType::Username`].
 fn generate_synthetic_username(original: &str) -> String {
     let seed = hash_to_seed(original);
     let first = select_from_array(FIRST_NAMES, seed, 0).to_lowercase();
@@ -461,9 +457,7 @@ fn generate_synthetic_username(original: &str) -> String {
 
 /// Generate synthetic IBAN.
 ///
-/// Ported verbatim from `NeuronEdge` for completeness; `EntityType` currently has
-/// no `Iban` variant so this is unreachable from [`generate`].
-#[allow(dead_code)]
+/// Dispatched from [`generate`] for [`EntityType::Iban`].
 fn generate_synthetic_iban(original: &str) -> String {
     let seed = hash_to_seed(original);
     let countries = &["DE", "FR", "GB", "ES", "IT", "NL"];
@@ -513,6 +507,9 @@ pub fn generate(entity_type: &EntityType, original: &str) -> String {
         EntityType::Address => generate_synthetic_address(original),
         EntityType::DateOfBirth => generate_synthetic_date_of_birth(original),
         EntityType::Passport => generate_synthetic_passport(original),
+        EntityType::Url => generate_synthetic_url(original),
+        EntityType::Username => generate_synthetic_username(original),
+        EntityType::Iban => generate_synthetic_iban(original),
         // All other types: fall back to a deterministic name-shaped token so
         // Synthetic redaction never echoes the original.
         _ => generate_synthetic_default(&entity_type.to_string(), original),

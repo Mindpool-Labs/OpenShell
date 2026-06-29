@@ -1,4 +1,5 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2025-2026 Infrastacks LLC.
 // SPDX-License-Identifier: Apache-2.0
 
 //! PII entity type definitions with compiled regex patterns.
@@ -11,9 +12,12 @@ use std::sync::LazyLock;
 /// Supported PII entity types.
 ///
 /// Variants fall into two categories:
-/// - **Regex-detected**: Have compiled patterns in `builtin_patterns()` (Ssn through Passport).
-/// - **NER-only**: Detected by the ML-based NER service (Person through NationalId).
-///   These have no regex patterns and require the `ner` feature and a running NER service.
+/// - **Regex-detected**: have compiled patterns in [`builtin_patterns`] (e.g.
+///   `Ssn`, `CreditCard`, `Email`, `Iban`, `TaxIdItin`, `DriverLicense`, and
+///   other structured identifiers).
+/// - **NER-only**: detected by the ML-based NER service (e.g. `Person`,
+///   `Address`, `MedicalTerm`, `NationalId`). These have no regex patterns and
+///   require the `ner` feature and a running NER service.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityType {
@@ -304,9 +308,6 @@ static RE_SWIFT_CODE: LazyLock<Regex> = LazyLock::new(|| {
 static RE_BANK_ACCOUNT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b\d{8,17}\b").expect("bank account regex"));
 
-static RE_BANK_ACCOUNT_US: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\b\d{8,17}\b").expect("US bank account regex"));
-
 static RE_BITCOIN_ADDRESS: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\b(?:bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}\b").expect("bitcoin address regex")
 });
@@ -353,9 +354,6 @@ static RE_TAX_ID_EIN: LazyLock<Regex> =
 
 static RE_TAX_ID_ITIN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b9\d{2}-\d{2}-\d{4}\b").expect("tax ID ITIN regex"));
-
-static RE_ITIN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\b9\d{2}-\d{2}-\d{4}\b").expect("ITIN regex"));
 
 // ---------- Healthcare patterns (Task 6b) ----------
 // Patterns ported verbatim from the pre-consolidation NeuronEdge redaction-engine
@@ -722,12 +720,6 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
             validator: None,
         },
         EntityPattern {
-            entity_type: EntityType::BankAccount,
-            regex: &RE_BANK_ACCOUNT_US,
-            confidence: 0.3,
-            validator: None,
-        },
-        EntityPattern {
             entity_type: EntityType::BitcoinAddress,
             regex: &RE_BITCOIN_ADDRESS,
             confidence: 0.7,
@@ -796,12 +788,6 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
         EntityPattern {
             entity_type: EntityType::TaxIdItin,
             regex: &RE_TAX_ID_ITIN,
-            confidence: 0.8,
-            validator: None,
-        },
-        EntityPattern {
-            entity_type: EntityType::TaxIdItin,
-            regex: &RE_ITIN,
             confidence: 0.8,
             validator: None,
         },
@@ -1481,7 +1467,6 @@ mod tests {
     #[test]
     fn bank_account_detects_and_rejects() {
         assert!(RE_BANK_ACCOUNT.is_match("12345678901234567"));
-        assert!(RE_BANK_ACCOUNT_US.is_match("12345678901234567"));
         assert!(!RE_BANK_ACCOUNT.is_match("1234567")); // too short
     }
 
@@ -1547,7 +1532,6 @@ mod tests {
     #[test]
     fn tax_id_itin_detects_and_rejects() {
         assert!(RE_TAX_ID_ITIN.is_match("901-23-4567"));
-        assert!(RE_ITIN.is_match("901-23-4567"));
         assert!(!RE_TAX_ID_ITIN.is_match("801-23-4567")); // does not start with 9
     }
 
