@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES.
 // SPDX-FileCopyrightText: Copyright (c) 2025-2026 Infrastacks LLC.
+// SPDX-FileCopyrightText: Copyright (c) 2026 Mindpool, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 //! PII redaction — replaces matched text with redaction tokens.
