@@ -1,4 +1,6 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES.
+// SPDX-FileCopyrightText: Copyright (c) 2025-2026 Infrastacks LLC.
+// SPDX-FileCopyrightText: Copyright (c) 2026 Mindpool, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 //! PII entity type definitions with compiled regex patterns.
@@ -11,9 +13,12 @@ use std::sync::LazyLock;
 /// Supported PII entity types.
 ///
 /// Variants fall into two categories:
-/// - **Regex-detected**: Have compiled patterns in `builtin_patterns()` (Ssn through Passport).
-/// - **NER-only**: Detected by the ML-based NER service (Person through NationalId).
-///   These have no regex patterns and require the `ner` feature and a running NER service.
+/// - **Regex-detected**: have compiled patterns in [`builtin_patterns`] (e.g.
+///   `Ssn`, `CreditCard`, `Email`, `Iban`, `TaxIdItin`, `DriverLicense`, and
+///   other structured identifiers).
+/// - **NER-only**: detected by the ML-based NER service (e.g. `Person`,
+///   `Address`, `MedicalTerm`, `NationalId`). These have no regex patterns and
+///   require the `ner` feature and a running NER service.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityType {
@@ -28,6 +33,48 @@ pub enum EntityType {
     Jwt,
     ApiKey,
     Passport,
+    // -- Additional regex-detected entity types (Financial/Technical/Tax) --
+    Iban,
+    RoutingNumber,
+    SwiftCode,
+    BankAccount,
+    BitcoinAddress,
+    EthereumAddress,
+    Vin,
+    MacAddress,
+    Ipv6,
+    Url,
+    Username,
+    Coordinates,
+    TaxIdEin,
+    TaxIdItin,
+    // -- Additional regex-detected entity types (Healthcare) --
+    MedicalRecordNumber,
+    DiagnosisCode,
+    Prescription,
+    HealthPlanId,
+    Npi,
+    DeaNumber,
+    Ndc,
+    DeviceIdentifier,
+    MedicareId,
+    // -- Additional regex-detected entity types (International) --
+    UkNino,
+    UkNhs,
+    UkPassport,
+    AustraliaTfn,
+    CanadaSin,
+    CanadaPassport,
+    ArgentinaDni,
+    GermanyId,
+    GermanyPassport,
+    FranceInsee,
+    FranceCni,
+    NetherlandsBsn,
+    PolandPesel,
+    SpainSsn,
+    // -- Additional regex-detected entity types (Driver License) --
+    DriverLicense,
     // -- NER-only entity types (no regex pattern) --
     Person,
     Organization,
@@ -53,6 +100,44 @@ impl fmt::Display for EntityType {
             Self::Jwt => write!(f, "jwt"),
             Self::ApiKey => write!(f, "api_key"),
             Self::Passport => write!(f, "passport"),
+            Self::Iban => write!(f, "iban"),
+            Self::RoutingNumber => write!(f, "routing_number"),
+            Self::SwiftCode => write!(f, "swift_code"),
+            Self::BankAccount => write!(f, "bank_account"),
+            Self::BitcoinAddress => write!(f, "bitcoin_address"),
+            Self::EthereumAddress => write!(f, "ethereum_address"),
+            Self::Vin => write!(f, "vin"),
+            Self::MacAddress => write!(f, "mac_address"),
+            Self::Ipv6 => write!(f, "ipv6"),
+            Self::Url => write!(f, "url"),
+            Self::Username => write!(f, "username"),
+            Self::Coordinates => write!(f, "coordinates"),
+            Self::TaxIdEin => write!(f, "tax_id_ein"),
+            Self::TaxIdItin => write!(f, "tax_id_itin"),
+            Self::MedicalRecordNumber => write!(f, "medical_record_number"),
+            Self::DiagnosisCode => write!(f, "diagnosis_code"),
+            Self::Prescription => write!(f, "prescription"),
+            Self::HealthPlanId => write!(f, "health_plan_id"),
+            Self::Npi => write!(f, "npi"),
+            Self::DeaNumber => write!(f, "dea_number"),
+            Self::Ndc => write!(f, "ndc"),
+            Self::DeviceIdentifier => write!(f, "device_identifier"),
+            Self::MedicareId => write!(f, "medicare_id"),
+            Self::UkNino => write!(f, "uk_nino"),
+            Self::UkNhs => write!(f, "uk_nhs"),
+            Self::UkPassport => write!(f, "uk_passport"),
+            Self::AustraliaTfn => write!(f, "australia_tfn"),
+            Self::CanadaSin => write!(f, "canada_sin"),
+            Self::CanadaPassport => write!(f, "canada_passport"),
+            Self::ArgentinaDni => write!(f, "argentina_dni"),
+            Self::GermanyId => write!(f, "germany_id"),
+            Self::GermanyPassport => write!(f, "germany_passport"),
+            Self::FranceInsee => write!(f, "france_insee"),
+            Self::FranceCni => write!(f, "france_cni"),
+            Self::NetherlandsBsn => write!(f, "netherlands_bsn"),
+            Self::PolandPesel => write!(f, "poland_pesel"),
+            Self::SpainSsn => write!(f, "spain_ssn"),
+            Self::DriverLicense => write!(f, "driver_license"),
             Self::Person => write!(f, "person"),
             Self::Organization => write!(f, "organization"),
             Self::Address => write!(f, "address"),
@@ -79,6 +164,44 @@ impl EntityType {
             "jwt" => Some(Self::Jwt),
             "api_key" => Some(Self::ApiKey),
             "passport" => Some(Self::Passport),
+            "iban" => Some(Self::Iban),
+            "routing_number" => Some(Self::RoutingNumber),
+            "swift_code" => Some(Self::SwiftCode),
+            "bank_account" => Some(Self::BankAccount),
+            "bitcoin_address" => Some(Self::BitcoinAddress),
+            "ethereum_address" => Some(Self::EthereumAddress),
+            "vin" => Some(Self::Vin),
+            "mac_address" => Some(Self::MacAddress),
+            "ipv6" => Some(Self::Ipv6),
+            "url" => Some(Self::Url),
+            "username" => Some(Self::Username),
+            "coordinates" => Some(Self::Coordinates),
+            "tax_id_ein" => Some(Self::TaxIdEin),
+            "tax_id_itin" => Some(Self::TaxIdItin),
+            "medical_record_number" => Some(Self::MedicalRecordNumber),
+            "diagnosis_code" => Some(Self::DiagnosisCode),
+            "prescription" => Some(Self::Prescription),
+            "health_plan_id" => Some(Self::HealthPlanId),
+            "npi" => Some(Self::Npi),
+            "dea_number" => Some(Self::DeaNumber),
+            "ndc" => Some(Self::Ndc),
+            "device_identifier" => Some(Self::DeviceIdentifier),
+            "medicare_id" => Some(Self::MedicareId),
+            "uk_nino" => Some(Self::UkNino),
+            "uk_nhs" => Some(Self::UkNhs),
+            "uk_passport" => Some(Self::UkPassport),
+            "australia_tfn" => Some(Self::AustraliaTfn),
+            "canada_sin" => Some(Self::CanadaSin),
+            "canada_passport" => Some(Self::CanadaPassport),
+            "argentina_dni" => Some(Self::ArgentinaDni),
+            "germany_id" => Some(Self::GermanyId),
+            "germany_passport" => Some(Self::GermanyPassport),
+            "france_insee" => Some(Self::FranceInsee),
+            "france_cni" => Some(Self::FranceCni),
+            "netherlands_bsn" => Some(Self::NetherlandsBsn),
+            "poland_pesel" => Some(Self::PolandPesel),
+            "spain_ssn" => Some(Self::SpainSsn),
+            "driver_license" => Some(Self::DriverLicense),
             "person" => Some(Self::Person),
             "organization" | "org" => Some(Self::Organization),
             "address" => Some(Self::Address),
@@ -166,31 +289,344 @@ static RE_PASSPORT: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\b[A-Z]{1,2}\d{6,9}\b").expect("passport regex")
 });
 
-/// Luhn algorithm for credit card validation.
-fn luhn_check(digits_str: &str) -> bool {
-    let digits: Vec<u8> = digits_str
-        .chars()
-        .filter(|c| c.is_ascii_digit())
-        .filter_map(|c| c.to_digit(10).map(|d| d as u8))
-        .collect();
-    if digits.len() < 13 || digits.len() > 19 {
-        return false;
-    }
-    let mut sum: u32 = 0;
-    let mut double = false;
-    for &d in digits.iter().rev() {
-        let mut val = u32::from(d);
-        if double {
-            val *= 2;
-            if val > 9 {
-                val -= 9;
-            }
-        }
-        sum += val;
-        double = !double;
-    }
-    sum % 10 == 0
-}
+// ---------- Built-in financial, technical, and tax regex entity groups ----------
+// These public regexes cover financial identifiers, technical secrets, and tax IDs.
+
+static RE_IBAN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}(?:[A-Z0-9]{0,16})?\b").expect("IBAN regex")
+});
+
+static RE_ROUTING_NUMBER: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:0[0-9]|1[0-2]|2[1-9]|3[0-2]|6[1-9]|7[0-2]|80)\d{7}\b")
+        .expect("routing number regex")
+});
+
+static RE_SWIFT_CODE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b").expect("SWIFT code regex")
+});
+
+static RE_BANK_ACCOUNT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8,17}\b").expect("bank account regex"));
+
+static RE_BITCOIN_ADDRESS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}\b").expect("bitcoin address regex")
+});
+
+static RE_BITCOIN_BECH32: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\bbc1[ac-hj-np-z02-9]{39,59}\b").expect("bitcoin bech32 regex"));
+
+static RE_ETHEREUM_ADDRESS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\b0x[a-f0-9]{40}\b").expect("ethereum address regex"));
+
+static RE_VIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-HJ-NPR-Z0-9]{17}\b").expect("VIN regex"));
+
+static RE_MAC_ADDRESS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b").expect("MAC address regex")
+});
+
+static RE_IPV6: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|\b(?:[0-9a-f]{1,4}:){1,7}:\b|\b:(?::[0-9a-f]{1,4}){1,7}\b|\b(?:[0-9a-f]{1,4}:){1,6}:[0-9a-f]{1,4}\b")
+            .expect("IPv6 regex")
+});
+
+static RE_URL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\bhttps?://[a-z0-9](?:[a-z0-9._~:/?#\[\]@!$&'()*+,;=-]*[a-z0-9/])?|\bwww\.[a-z0-9](?:[a-z0-9._~:/?#\[\]@!$&'()*+,;=-]*[a-z0-9/])?\b")
+            .expect("URL regex")
+});
+
+static RE_USERNAME: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|[\s\(\[\{,;:!?/\-])@([a-zA-Z0-9_]{2,32})").expect("username regex")
+});
+
+static RE_COORDINATES_DECIMAL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:[+-]?(?:90|[0-8]?\d)(?:\.\d{1,8})?)[,\s]+[+-]?(?:180|1[0-7]\d|[0-9]{1,2})(?:\.\d{1,8})?")
+            .expect("decimal coordinates regex")
+});
+
+static RE_COORDINATES_DMS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:[0-8]?\d[dD][0-5]?\d[mM][0-5]?\d(?:\.\d+)?[sS][NSEWnsew]\s+(?:1[0-7]\d|[0-9]{1,2})[dD][0-5]?\d[mM][0-5]?\d(?:\.\d+)?[sS][NSEWnsew])")
+            .expect("DMS coordinates regex")
+});
+
+static RE_TAX_ID_EIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{2}-\d{7}\b").expect("tax ID EIN regex"));
+
+static RE_TAX_ID_ITIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b9\d{2}-\d{2}-\d{4}\b").expect("tax ID ITIN regex"));
+
+// ---------- Built-in healthcare regex entity group ----------
+
+static RE_MEDICAL_RECORD_NUMBER: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?:MRN|MR#|Medical Record #)\s*[:=]?\s*[A-Za-z0-9]{6,10}")
+        .expect("medical record number regex")
+});
+
+static RE_DIAGNOSIS_CODE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d{1,2}(?:\.\d{1,2})?|\d{3}(?:\.\d{2})?)\b")
+        .expect("diagnosis code regex")
+});
+
+static RE_PRESCRIPTION: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\bRx\d{7,}\b|\b\d{5}-\d{4}-\d{2}\b").expect("prescription regex")
+});
+
+static RE_HEALTH_PLAN_ID: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z0-9]{10,20}\b").expect("health plan ID regex"));
+
+static RE_NPI: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b[12]\d{9}\b").expect("NPI regex"));
+
+static RE_DEA_NUMBER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]{2}\d{7}\b").expect("DEA number regex"));
+
+static RE_NDC: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{5}-\d{4}-\d{2}|\d{5}-\d{3}-\d{2}|\d{4}-\d{4}-\d{2}|\d{10,11})\b")
+        .expect("NDC regex")
+});
+
+static RE_DEVICE_IDENTIFIER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\(01\)\d{14}|\d{14})\b").expect("device identifier regex"));
+
+static RE_MEDICARE_ID: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[1-9][AC-HJKM-NP-RT-Y][AC-HJKM-NP-RT-Y0-9]\d[AC-HJKM-NP-RT-Y][AC-HJKM-NP-RT-Y0-9]\d[AC-HJKM-NP-RT-Y]{2}\d{2}\b")
+            .expect("Medicare ID regex")
+});
+
+// ---------- Built-in international regex entity group ----------
+
+static RE_UK_NINO: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?i)\b[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][\s-]?\d{2}[\s-]?\d{2}[\s-]?\d{2}[\s-]?[A-D]\b",
+    )
+    .expect("UK NINO regex")
+});
+
+static RE_UK_NHS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{3}[\s-]?\d{3}[\s-]?\d{4}\b").expect("UK NHS regex"));
+
+static RE_UK_PASSPORT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("UK passport regex"));
+
+static RE_AUSTRALIA_TFN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b\d{3}[\s-]?\d{3}[\s-]?\d{2,3}\b").expect("Australia TFN regex")
+});
+
+static RE_CANADA_SIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{3}[\s-]?\d{3}[\s-]?\d{3}\b").expect("Canada SIN regex"));
+
+static RE_CANADA_PASSPORT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]{2}\d{6}\b").expect("Canada passport regex"));
+
+static RE_ARGENTINA_DNI: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,2}\.?\d{3}\.?\d{3}\b").expect("Argentina DNI regex"));
+
+static RE_GERMANY_ID: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[CFGHJKLMNPRTVWXYZ0-9]{9}\b").expect("Germany ID regex"));
+
+static RE_GERMANY_PASSPORT: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[CFGHJKLMNPRTVWXYZ]\d{8}|[A-Z0-9]{9,10})\b").expect("Germany passport regex")
+});
+
+static RE_FRANCE_INSEE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[12]\d{2}(?:0[1-9]|1[0-2]|[2-9][0-9])(?:0[1-9]|[1-8][0-9]|9[0-5]|2[AB])\d{3}\d{3}(?:\d{2})?\b")
+            .expect("France INSEE regex")
+});
+
+static RE_FRANCE_CNI: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z0-9]{12}\b").expect("France CNI regex"));
+
+static RE_NETHERLANDS_BSN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("Netherlands BSN regex"));
+
+static RE_POLAND_PESEL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b\d{2}(?:0[1-9]|1[0-2]|[2-8][1-9])(?:0[1-9]|[12][0-9]|3[01])\d{5}\b")
+        .expect("Poland PESEL regex")
+});
+
+static RE_SPAIN_SSN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{8}[A-Z]|[XYZ]\d{7}[A-Z])\b").expect("Spain SSN regex"));
+
+// ---------- Built-in driver license regex entity group ----------
+// These are low-discrimination
+// patterns (many are generic `\d{N}`), so they are registered at confidence 0.3.
+
+// Generic + state-specific patterns (regex.rs)
+static RE_DRIVER_LICENSE_GENERIC: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b[A-Z]\d{7,8}\b|\b[A-Z]{2}\d{6,7}\b|\b\d{7,9}\b")
+        .expect("driver license generic regex")
+});
+
+static RE_DRIVER_LICENSE_CA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{7}\b").expect("driver license CA regex"));
+
+static RE_DRIVER_LICENSE_NY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{8}\b").expect("driver license NY regex"));
+
+static RE_DRIVER_LICENSE_TX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8}\b").expect("driver license TX regex"));
+
+static RE_DRIVER_LICENSE_FL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{5,6}\b").expect("driver license FL regex"));
+
+// US state patterns (regex_extended.rs): 50 states + DC
+static RE_DL_ALABAMA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7}\b").expect("DL Alabama regex"));
+
+static RE_DL_ALASKA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,7}\b").expect("DL Alaska regex"));
+
+static RE_DL_ARIZONA: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d{8}|[A-Z]{2}\d{2,5}[A-Z0-9]*|\d{9})\b").expect("DL Arizona regex")
+});
+
+static RE_DL_ARKANSAS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{4,9}\b").expect("DL Arkansas regex"));
+
+static RE_DL_CALIFORNIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{7}\b").expect("DL California regex"));
+
+static RE_DL_COLORADO: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{9}|[A-Z]\d{3,6}[A-Z]\d{2,5})\b").expect("DL Colorado regex")
+});
+
+static RE_DL_CONNECTICUT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("DL Connecticut regex"));
+
+static RE_DL_DELAWARE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,7}\b").expect("DL Delaware regex"));
+
+static RE_DL_DC: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{7}|\d{9})\b").expect("DL DC regex"));
+
+static RE_DL_FLORIDA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{12}\b").expect("DL Florida regex"));
+
+static RE_DL_GEORGIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7,9}\b").expect("DL Georgia regex"));
+
+static RE_DL_HAWAII: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8}|\d{9})\b").expect("DL Hawaii regex"));
+
+static RE_DL_IDAHO: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]{2}\d{6}[A-Z]|\d{9})\b").expect("DL Idaho regex"));
+
+static RE_DL_ILLINOIS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{11,12}\b").expect("DL Illinois regex"));
+
+static RE_DL_INDIANA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{9}|\d{9,10})\b").expect("DL Indiana regex"));
+
+static RE_DL_IOWA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z0-9]{9}|\d{3}[A-Z]{2}\d{4})\b").expect("DL Iowa regex"));
+
+static RE_DL_KANSAS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d[A-Z]\d[A-Z]|K\d{8}|\d{9})\b").expect("DL Kansas regex")
+});
+
+static RE_DL_KENTUCKY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8,9}|\d{9})\b").expect("DL Kentucky regex"));
+
+static RE_DL_LOUISIANA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,9}\b").expect("DL Louisiana regex"));
+
+static RE_DL_MAINE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7}X?\b").expect("DL Maine regex"));
+
+static RE_DL_MARYLAND: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{12}\b").expect("DL Maryland regex"));
+
+static RE_DL_MASSACHUSETTS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8}|\d{9})\b").expect("DL Massachusetts regex"));
+
+static RE_DL_MICHIGAN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{10,12}\b").expect("DL Michigan regex"));
+
+static RE_DL_MINNESOTA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{12}\b").expect("DL Minnesota regex"));
+
+static RE_DL_MISSISSIPPI: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9}\b").expect("DL Mississippi regex"));
+
+static RE_DL_MISSOURI: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:[A-Z]\d{5,9}|\d{9}[A-Z]\d|\d{9})\b").expect("DL Missouri regex")
+});
+
+static RE_DL_MONTANA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{9}|[A-Z0-9]{13})\b").expect("DL Montana regex"));
+
+static RE_DL_NEBRASKA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{3,8}\b").expect("DL Nebraska regex"));
+
+static RE_DL_NEVADA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{10}|\d{12}|X\d{8})\b").expect("DL Nevada regex"));
+
+static RE_DL_NEW_HAMPSHIRE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{2}[A-Z]{3}\d{5}\b").expect("DL New Hampshire regex"));
+
+static RE_DL_NEW_JERSEY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{14}\b").expect("DL New Jersey regex"));
+
+static RE_DL_NEW_MEXICO: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8,9}\b").expect("DL New Mexico regex"));
+
+static RE_DL_NEW_YORK: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{9}|[A-Z]\d{7}[A-Z]\d|[A-Z]\d{18})\b").expect("DL New York regex")
+});
+
+static RE_DL_NORTH_CAROLINA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,12}\b").expect("DL North Carolina regex"));
+
+static RE_DL_NORTH_DAKOTA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]{3}\d{6}|\d{9})\b").expect("DL North Dakota regex"));
+
+static RE_DL_OHIO: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]{2}\d{6}|\d{8})\b").expect("DL Ohio regex"));
+
+static RE_DL_OKLAHOMA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{9}|\d{9})\b").expect("DL Oklahoma regex"));
+
+static RE_DL_OREGON: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{1,9}\b").expect("DL Oregon regex"));
+
+static RE_DL_PENNSYLVANIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{8}\b").expect("DL Pennsylvania regex"));
+
+static RE_DL_RHODE_ISLAND: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{7}|[A-Z]\d{6})\b").expect("DL Rhode Island regex"));
+
+static RE_DL_SOUTH_CAROLINA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{5,11}\b").expect("DL South Carolina regex"));
+
+static RE_DL_SOUTH_DAKOTA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{6,10}|\d{12})\b").expect("DL South Dakota regex"));
+
+static RE_DL_TENNESSEE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7,9}\b").expect("DL Tennessee regex"));
+
+static RE_DL_TEXAS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{7,8}\b").expect("DL Texas regex"));
+
+static RE_DL_UTAH: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{4,10}\b").expect("DL Utah regex"));
+
+static RE_DL_VERMONT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:\d{8}|\d{7}A)\b").expect("DL Vermont regex"));
+
+static RE_DL_VIRGINIA: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:[A-Z]\d{8,11}|\d{9})\b").expect("DL Virginia regex"));
+
+static RE_DL_WASHINGTON: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]{1,7}[A-Z0-9]{5}\b").expect("DL Washington regex"));
+
+static RE_DL_WEST_VIRGINIA: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\b(?:\d{7}|[A-Z]{1,2}\d{5,6})\b").expect("DL West Virginia regex")
+});
+
+static RE_DL_WISCONSIN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b[A-Z]\d{13}\b").expect("DL Wisconsin regex"));
+
+static RE_DL_WYOMING: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b\d{9,10}\b").expect("DL Wyoming regex"));
 
 /// All built-in entity patterns.
 pub fn builtin_patterns() -> Vec<EntityPattern> {
@@ -205,7 +641,7 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
             entity_type: EntityType::CreditCard,
             regex: &RE_CREDIT_CARD,
             confidence: 0.95,
-            validator: Some(luhn_check),
+            validator: Some(crate::validators::luhn),
         },
         EntityPattern {
             entity_type: EntityType::Email,
@@ -255,6 +691,581 @@ pub fn builtin_patterns() -> Vec<EntityPattern> {
             confidence: 0.5,
             validator: None,
         },
+        // -- Built-in financial, technical, and tax entity group --
+        EntityPattern {
+            entity_type: EntityType::Iban,
+            regex: &RE_IBAN,
+            confidence: 0.85,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::RoutingNumber,
+            regex: &RE_ROUTING_NUMBER,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::SwiftCode,
+            regex: &RE_SWIFT_CODE,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::BankAccount,
+            regex: &RE_BANK_ACCOUNT,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::BitcoinAddress,
+            regex: &RE_BITCOIN_ADDRESS,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::BitcoinAddress,
+            regex: &RE_BITCOIN_BECH32,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::EthereumAddress,
+            regex: &RE_ETHEREUM_ADDRESS,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Vin,
+            regex: &RE_VIN,
+            confidence: 0.6,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::MacAddress,
+            regex: &RE_MAC_ADDRESS,
+            confidence: 0.85,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Ipv6,
+            regex: &RE_IPV6,
+            confidence: 0.6,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Url,
+            regex: &RE_URL,
+            confidence: 0.5,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Username,
+            regex: &RE_USERNAME,
+            confidence: 0.4,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Coordinates,
+            regex: &RE_COORDINATES_DECIMAL,
+            confidence: 0.5,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Coordinates,
+            regex: &RE_COORDINATES_DMS,
+            confidence: 0.5,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::TaxIdEin,
+            regex: &RE_TAX_ID_EIN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::TaxIdItin,
+            regex: &RE_TAX_ID_ITIN,
+            confidence: 0.8,
+            validator: None,
+        },
+        // -- Built-in healthcare entity group --
+        EntityPattern {
+            entity_type: EntityType::MedicalRecordNumber,
+            regex: &RE_MEDICAL_RECORD_NUMBER,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DiagnosisCode,
+            regex: &RE_DIAGNOSIS_CODE,
+            confidence: 0.4,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Prescription,
+            regex: &RE_PRESCRIPTION,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::HealthPlanId,
+            regex: &RE_HEALTH_PLAN_ID,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Npi,
+            regex: &RE_NPI,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DeaNumber,
+            regex: &RE_DEA_NUMBER,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::Ndc,
+            regex: &RE_NDC,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DeviceIdentifier,
+            regex: &RE_DEVICE_IDENTIFIER,
+            confidence: 0.6,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::MedicareId,
+            regex: &RE_MEDICARE_ID,
+            confidence: 0.8,
+            validator: None,
+        },
+        // -- Built-in international entity group --
+        EntityPattern {
+            entity_type: EntityType::UkNino,
+            regex: &RE_UK_NINO,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::UkNhs,
+            regex: &RE_UK_NHS,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::UkPassport,
+            regex: &RE_UK_PASSPORT,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::AustraliaTfn,
+            regex: &RE_AUSTRALIA_TFN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::CanadaSin,
+            regex: &RE_CANADA_SIN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::CanadaPassport,
+            regex: &RE_CANADA_PASSPORT,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::ArgentinaDni,
+            regex: &RE_ARGENTINA_DNI,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::GermanyId,
+            regex: &RE_GERMANY_ID,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::GermanyPassport,
+            regex: &RE_GERMANY_PASSPORT,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::FranceInsee,
+            regex: &RE_FRANCE_INSEE,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::FranceCni,
+            regex: &RE_FRANCE_CNI,
+            confidence: 0.7,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::NetherlandsBsn,
+            regex: &RE_NETHERLANDS_BSN,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::PolandPesel,
+            regex: &RE_POLAND_PESEL,
+            confidence: 0.8,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::SpainSsn,
+            regex: &RE_SPAIN_SSN,
+            confidence: 0.8,
+            validator: None,
+        },
+        // -- Built-in driver license entity group --
+        // Low confidence (0.3): these are low-discrimination patterns (many generic \d{N}).
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_GENERIC,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_CA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_NY,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_TX,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DRIVER_LICENSE_FL,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ALABAMA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ALASKA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ARIZONA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ARKANSAS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_CALIFORNIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_COLORADO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_CONNECTICUT,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_DELAWARE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_DC,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_FLORIDA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_GEORGIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_HAWAII,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_IDAHO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_ILLINOIS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_INDIANA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_IOWA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_KANSAS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_KENTUCKY,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_LOUISIANA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MAINE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MARYLAND,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MASSACHUSETTS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MICHIGAN,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MINNESOTA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MISSISSIPPI,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MISSOURI,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_MONTANA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEBRASKA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEVADA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_HAMPSHIRE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_JERSEY,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_MEXICO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NEW_YORK,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NORTH_CAROLINA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_NORTH_DAKOTA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_OHIO,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_OKLAHOMA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_OREGON,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_PENNSYLVANIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_RHODE_ISLAND,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_SOUTH_CAROLINA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_SOUTH_DAKOTA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_TENNESSEE,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_TEXAS,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_UTAH,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_VERMONT,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_VIRGINIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WASHINGTON,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WEST_VIRGINIA,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WISCONSIN,
+            confidence: 0.3,
+            validator: None,
+        },
+        EntityPattern {
+            entity_type: EntityType::DriverLicense,
+            regex: &RE_DL_WYOMING,
+            confidence: 0.3,
+            validator: None,
+        },
     ]
 }
 
@@ -278,15 +1289,15 @@ mod tests {
     // ---- Credit card + Luhn ----
     #[test]
     fn credit_card_luhn_valid() {
-        assert!(luhn_check("4111111111111111")); // Visa test
-        assert!(luhn_check("5500000000000004")); // MC test
-        assert!(luhn_check("378282246310005")); // Amex test
+        assert!(crate::validators::luhn("4111111111111111")); // Visa test
+        assert!(crate::validators::luhn("5500000000000004")); // MC test
+        assert!(crate::validators::luhn("378282246310005")); // Amex test
     }
 
     #[test]
     fn credit_card_luhn_invalid() {
-        assert!(!luhn_check("4111111111111112"));
-        assert!(!luhn_check("1234567890"));
+        assert!(!crate::validators::luhn("4111111111111112"));
+        assert!(!crate::validators::luhn("1234567890"));
     }
 
     // ---- Email ----
@@ -426,5 +1437,615 @@ mod tests {
         assert!(EntityType::MedicalTerm.is_ner_only());
         assert!(EntityType::Location.is_ner_only());
         assert!(EntityType::NationalId.is_ner_only());
+    }
+
+    // ---- Financial, technical, and tax coverage tests ----
+
+    #[test]
+    fn iban_detects_and_rejects() {
+        assert!(RE_IBAN.is_match("GB29NWBK60161331926819"));
+        assert!(RE_IBAN.is_match("DE89370400440532013000"));
+        assert!(!RE_IBAN.is_match("GB2"));
+    }
+
+    #[test]
+    fn routing_number_detects_and_rejects() {
+        assert!(RE_ROUTING_NUMBER.is_match("021000021"));
+        assert!(!RE_ROUTING_NUMBER.is_match("999999999")); // invalid prefix
+    }
+
+    #[test]
+    fn swift_code_detects_and_rejects() {
+        assert!(RE_SWIFT_CODE.is_match("DEUTDEDB"));
+        assert!(RE_SWIFT_CODE.is_match("DEUTDEDBXXX"));
+        assert!(!RE_SWIFT_CODE.is_match("DEUT"));
+    }
+
+    #[test]
+    fn bank_account_detects_and_rejects() {
+        assert!(RE_BANK_ACCOUNT.is_match("12345678901234567"));
+        assert!(!RE_BANK_ACCOUNT.is_match("1234567")); // too short
+    }
+
+    #[test]
+    fn bitcoin_address_detects_and_rejects() {
+        assert!(RE_BITCOIN_ADDRESS.is_match("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"));
+        assert!(RE_BITCOIN_BECH32.is_match("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"));
+        assert!(!RE_BITCOIN_ADDRESS.is_match("1abc"));
+    }
+
+    #[test]
+    fn ethereum_address_detects_and_rejects() {
+        assert!(RE_ETHEREUM_ADDRESS.is_match("0x1234567890abcdef1234567890abcdef12345678"));
+        assert!(RE_ETHEREUM_ADDRESS.is_match("0xABCDEF1234567890ABCDEF1234567890ABCDEF12"));
+        assert!(!RE_ETHEREUM_ADDRESS.is_match("0x1234"));
+    }
+
+    #[test]
+    fn vin_detects_and_rejects() {
+        assert!(RE_VIN.is_match("1HGBH41JXMN109186"));
+        assert!(!RE_VIN.is_match("1HGBH41JXMN10918")); // 16 chars
+    }
+
+    #[test]
+    fn mac_address_detects_and_rejects() {
+        assert!(RE_MAC_ADDRESS.is_match("00:1A:2B:3C:4D:5E"));
+        assert!(RE_MAC_ADDRESS.is_match("AA-BB-CC-DD-EE-FF"));
+        assert!(!RE_MAC_ADDRESS.is_match("00:1A:2B:3C")); // too few octets
+    }
+
+    #[test]
+    fn ipv6_detects_and_rejects() {
+        assert!(RE_IPV6.is_match("2001:0db8:85a3:0000:0000:8a2e:0370:7334"));
+        assert!(!RE_IPV6.is_match("not-an-ipv6-address"));
+    }
+
+    #[test]
+    fn url_detects_and_rejects() {
+        assert!(RE_URL.is_match("https://example.com"));
+        assert!(RE_URL.is_match("www.example.com"));
+        assert!(!RE_URL.is_match("not a url here"));
+    }
+
+    #[test]
+    fn username_detects_and_rejects() {
+        assert!(RE_USERNAME.is_match("Follow @john_doe"));
+        assert!(!RE_USERNAME.is_match("no mention here"));
+    }
+
+    #[test]
+    fn coordinates_detects_and_rejects() {
+        assert!(RE_COORDINATES_DECIMAL.is_match("40.7128, -74.0060"));
+        assert!(RE_COORDINATES_DMS.is_match("40d42m46sN 74d0m22sW"));
+        assert!(!RE_COORDINATES_DECIMAL.is_match("no coords here"));
+    }
+
+    #[test]
+    fn tax_id_ein_detects_and_rejects() {
+        assert!(RE_TAX_ID_EIN.is_match("12-3456789"));
+        assert!(!RE_TAX_ID_EIN.is_match("12-345678")); // 6 digits after dash
+    }
+
+    #[test]
+    fn tax_id_itin_detects_and_rejects() {
+        assert!(RE_TAX_ID_ITIN.is_match("901-23-4567"));
+        assert!(!RE_TAX_ID_ITIN.is_match("801-23-4567")); // does not start with 9
+    }
+
+    #[test]
+    fn financial_technical_tax_variants_parse_and_display() {
+        let cases = [
+            (EntityType::Iban, "iban"),
+            (EntityType::RoutingNumber, "routing_number"),
+            (EntityType::SwiftCode, "swift_code"),
+            (EntityType::BankAccount, "bank_account"),
+            (EntityType::BitcoinAddress, "bitcoin_address"),
+            (EntityType::EthereumAddress, "ethereum_address"),
+            (EntityType::Vin, "vin"),
+            (EntityType::MacAddress, "mac_address"),
+            (EntityType::Ipv6, "ipv6"),
+            (EntityType::Url, "url"),
+            (EntityType::Username, "username"),
+            (EntityType::Coordinates, "coordinates"),
+            (EntityType::TaxIdEin, "tax_id_ein"),
+            (EntityType::TaxIdItin, "tax_id_itin"),
+        ];
+        for (variant, label) in cases {
+            assert_eq!(variant.to_string(), label);
+            assert_eq!(EntityType::parse(label), Some(variant));
+        }
+    }
+
+    #[test]
+    fn financial_technical_tax_variants_are_regex_not_ner() {
+        for variant in [
+            EntityType::Iban,
+            EntityType::RoutingNumber,
+            EntityType::SwiftCode,
+            EntityType::BankAccount,
+            EntityType::BitcoinAddress,
+            EntityType::EthereumAddress,
+            EntityType::Vin,
+            EntityType::MacAddress,
+            EntityType::Ipv6,
+            EntityType::Url,
+            EntityType::Username,
+            EntityType::Coordinates,
+            EntityType::TaxIdEin,
+            EntityType::TaxIdItin,
+        ] {
+            assert!(!variant.is_ner_only());
+        }
+    }
+
+    #[test]
+    fn financial_technical_tax_patterns_registered_in_builtin() {
+        let patterns = builtin_patterns();
+        for variant in [
+            EntityType::Iban,
+            EntityType::RoutingNumber,
+            EntityType::SwiftCode,
+            EntityType::BankAccount,
+            EntityType::BitcoinAddress,
+            EntityType::EthereumAddress,
+            EntityType::Vin,
+            EntityType::MacAddress,
+            EntityType::Ipv6,
+            EntityType::Url,
+            EntityType::Username,
+            EntityType::Coordinates,
+            EntityType::TaxIdEin,
+            EntityType::TaxIdItin,
+        ] {
+            assert!(
+                patterns.iter().any(|p| p.entity_type == variant),
+                "missing builtin pattern for {variant:?}"
+            );
+        }
+    }
+
+    // ---- Healthcare coverage tests ----
+
+    #[test]
+    fn medical_record_number_detects_and_rejects() {
+        assert!(RE_MEDICAL_RECORD_NUMBER.is_match("MRN123456"));
+        assert!(RE_MEDICAL_RECORD_NUMBER.is_match("MR#00123456"));
+        assert!(!RE_MEDICAL_RECORD_NUMBER.is_match("MRN12345")); // 5 chars, needs 6-10
+    }
+
+    #[test]
+    fn diagnosis_code_detects_and_rejects() {
+        assert!(RE_DIAGNOSIS_CODE.is_match("E11.9"));
+        assert!(RE_DIAGNOSIS_CODE.is_match("250.00"));
+        assert!(!RE_DIAGNOSIS_CODE.is_match("not a code"));
+    }
+
+    #[test]
+    fn prescription_detects_and_rejects() {
+        assert!(RE_PRESCRIPTION.is_match("Rx1234567"));
+        assert!(RE_PRESCRIPTION.is_match("12345-6789-01"));
+        assert!(!RE_PRESCRIPTION.is_match("Rx123456")); // 6 digits, needs 7+
+    }
+
+    #[test]
+    fn health_plan_id_detects_and_rejects() {
+        assert!(RE_HEALTH_PLAN_ID.is_match("ABCDEF1234")); // 10 alphanumeric
+        assert!(!RE_HEALTH_PLAN_ID.is_match("ABC123")); // too short
+    }
+
+    #[test]
+    fn npi_detects_and_rejects() {
+        assert!(RE_NPI.is_match("1234567890"));
+        assert!(!RE_NPI.is_match("3234567890")); // starts with 3
+    }
+
+    #[test]
+    fn dea_number_detects_and_rejects() {
+        assert!(RE_DEA_NUMBER.is_match("AB1234567"));
+        assert!(!RE_DEA_NUMBER.is_match("A1234567")); // 1 letter
+    }
+
+    #[test]
+    fn ndc_detects_and_rejects() {
+        assert!(RE_NDC.is_match("12345-6789-01"));
+        assert!(RE_NDC.is_match("0123456789")); // 10 digits
+        assert!(!RE_NDC.is_match("12345"));
+    }
+
+    #[test]
+    fn device_identifier_detects_and_rejects() {
+        assert!(RE_DEVICE_IDENTIFIER.is_match("12345678901234")); // 14 digits
+        assert!(!RE_DEVICE_IDENTIFIER.is_match("1234567890123")); // 13 digits
+    }
+
+    #[test]
+    fn medicare_id_detects_and_rejects() {
+        assert!(RE_MEDICARE_ID.is_match("1CA2CA3CA45"));
+        assert!(!RE_MEDICARE_ID.is_match("1BA2CA3CA45")); // 'B' excluded at position 2
+    }
+
+    // ---- International coverage tests ----
+
+    #[test]
+    fn uk_nino_detects_and_rejects() {
+        assert!(RE_UK_NINO.is_match("AC123456C"));
+        assert!(!RE_UK_NINO.is_match("AA12345")); // too few digits, no trailing letter
+    }
+
+    #[test]
+    fn uk_nhs_detects_and_rejects() {
+        assert!(RE_UK_NHS.is_match("123 456 7890"));
+        assert!(!RE_UK_NHS.is_match("123456789")); // 9 digits
+    }
+
+    #[test]
+    fn uk_passport_detects_and_rejects() {
+        assert!(RE_UK_PASSPORT.is_match("123456789"));
+        assert!(!RE_UK_PASSPORT.is_match("12345678")); // 8 digits
+    }
+
+    #[test]
+    fn australia_tfn_detects_and_rejects() {
+        assert!(RE_AUSTRALIA_TFN.is_match("123 456 789"));
+        assert!(!RE_AUSTRALIA_TFN.is_match("1234567")); // 7 digits
+    }
+
+    #[test]
+    fn canada_sin_detects_and_rejects() {
+        assert!(RE_CANADA_SIN.is_match("123-456-789"));
+        assert!(!RE_CANADA_SIN.is_match("12345678")); // 8 digits
+    }
+
+    #[test]
+    fn canada_passport_detects_and_rejects() {
+        assert!(RE_CANADA_PASSPORT.is_match("AB123456"));
+        assert!(!RE_CANADA_PASSPORT.is_match("A123456")); // 1 letter
+    }
+
+    #[test]
+    fn argentina_dni_detects_and_rejects() {
+        assert!(RE_ARGENTINA_DNI.is_match("12.345.678"));
+        assert!(!RE_ARGENTINA_DNI.is_match("12345")); // too short
+    }
+
+    #[test]
+    fn germany_id_detects_and_rejects() {
+        assert!(RE_GERMANY_ID.is_match("CFGHJKLMN"));
+        assert!(!RE_GERMANY_ID.is_match("12345678")); // 8 chars
+    }
+
+    #[test]
+    fn germany_passport_detects_and_rejects() {
+        assert!(RE_GERMANY_PASSPORT.is_match("C12345678"));
+        assert!(!RE_GERMANY_PASSPORT.is_match("C1234567")); // C + 7 digits
+    }
+
+    #[test]
+    fn france_insee_detects_and_rejects() {
+        assert!(RE_FRANCE_INSEE.is_match("128017512345678"));
+        assert!(!RE_FRANCE_INSEE.is_match("123456789012")); // 12 digits, needs 13+
+    }
+
+    #[test]
+    fn france_cni_detects_and_rejects() {
+        assert!(RE_FRANCE_CNI.is_match("AB1234567890")); // 12 alphanumeric
+        assert!(!RE_FRANCE_CNI.is_match("AB12345678")); // 10 chars
+    }
+
+    #[test]
+    fn netherlands_bsn_detects_and_rejects() {
+        assert!(RE_NETHERLANDS_BSN.is_match("123456782"));
+        assert!(!RE_NETHERLANDS_BSN.is_match("12345678")); // 8 digits
+    }
+
+    #[test]
+    fn poland_pesel_detects_and_rejects() {
+        assert!(RE_POLAND_PESEL.is_match("90010112345"));
+        assert!(!RE_POLAND_PESEL.is_match("9001011234")); // 10 digits
+    }
+
+    #[test]
+    fn spain_ssn_detects_and_rejects() {
+        assert!(RE_SPAIN_SSN.is_match("12345678Z"));
+        assert!(RE_SPAIN_SSN.is_match("X1234567Z"));
+        assert!(!RE_SPAIN_SSN.is_match("1234567Z")); // 7 digits
+    }
+
+    #[test]
+    fn healthcare_international_variants_parse_and_display() {
+        let cases = [
+            (EntityType::MedicalRecordNumber, "medical_record_number"),
+            (EntityType::DiagnosisCode, "diagnosis_code"),
+            (EntityType::Prescription, "prescription"),
+            (EntityType::HealthPlanId, "health_plan_id"),
+            (EntityType::Npi, "npi"),
+            (EntityType::DeaNumber, "dea_number"),
+            (EntityType::Ndc, "ndc"),
+            (EntityType::DeviceIdentifier, "device_identifier"),
+            (EntityType::MedicareId, "medicare_id"),
+            (EntityType::UkNino, "uk_nino"),
+            (EntityType::UkNhs, "uk_nhs"),
+            (EntityType::UkPassport, "uk_passport"),
+            (EntityType::AustraliaTfn, "australia_tfn"),
+            (EntityType::CanadaSin, "canada_sin"),
+            (EntityType::CanadaPassport, "canada_passport"),
+            (EntityType::ArgentinaDni, "argentina_dni"),
+            (EntityType::GermanyId, "germany_id"),
+            (EntityType::GermanyPassport, "germany_passport"),
+            (EntityType::FranceInsee, "france_insee"),
+            (EntityType::FranceCni, "france_cni"),
+            (EntityType::NetherlandsBsn, "netherlands_bsn"),
+            (EntityType::PolandPesel, "poland_pesel"),
+            (EntityType::SpainSsn, "spain_ssn"),
+        ];
+        for (variant, label) in cases {
+            assert_eq!(variant.to_string(), label);
+            assert_eq!(EntityType::parse(label), Some(variant));
+        }
+    }
+
+    #[test]
+    fn healthcare_international_variants_are_regex_not_ner() {
+        for variant in [
+            EntityType::MedicalRecordNumber,
+            EntityType::DiagnosisCode,
+            EntityType::Prescription,
+            EntityType::HealthPlanId,
+            EntityType::Npi,
+            EntityType::DeaNumber,
+            EntityType::Ndc,
+            EntityType::DeviceIdentifier,
+            EntityType::MedicareId,
+            EntityType::UkNino,
+            EntityType::UkNhs,
+            EntityType::UkPassport,
+            EntityType::AustraliaTfn,
+            EntityType::CanadaSin,
+            EntityType::CanadaPassport,
+            EntityType::ArgentinaDni,
+            EntityType::GermanyId,
+            EntityType::GermanyPassport,
+            EntityType::FranceInsee,
+            EntityType::FranceCni,
+            EntityType::NetherlandsBsn,
+            EntityType::PolandPesel,
+            EntityType::SpainSsn,
+        ] {
+            assert!(!variant.is_ner_only());
+        }
+    }
+
+    #[test]
+    fn healthcare_international_patterns_registered_in_builtin() {
+        let patterns = builtin_patterns();
+        for variant in [
+            EntityType::MedicalRecordNumber,
+            EntityType::DiagnosisCode,
+            EntityType::Prescription,
+            EntityType::HealthPlanId,
+            EntityType::Npi,
+            EntityType::DeaNumber,
+            EntityType::Ndc,
+            EntityType::DeviceIdentifier,
+            EntityType::MedicareId,
+            EntityType::UkNino,
+            EntityType::UkNhs,
+            EntityType::UkPassport,
+            EntityType::AustraliaTfn,
+            EntityType::CanadaSin,
+            EntityType::CanadaPassport,
+            EntityType::ArgentinaDni,
+            EntityType::GermanyId,
+            EntityType::GermanyPassport,
+            EntityType::FranceInsee,
+            EntityType::FranceCni,
+            EntityType::NetherlandsBsn,
+            EntityType::PolandPesel,
+            EntityType::SpainSsn,
+        ] {
+            assert!(
+                patterns.iter().any(|p| p.entity_type == variant),
+                "missing builtin pattern for {variant:?}"
+            );
+        }
+    }
+
+    // ---- Driver license coverage tests ----
+    //
+    // Data-driven test: one table row per built-in regex constant, asserting each
+    // compiled regex matches its representative positive sample and rejects a
+    // clearly-non-matching negative (lowercase, no digits, no uppercase runs).
+    // Negative samples are intentionally uniform: every DL pattern requires a
+    // digit run or uppercase letters, so a lowercase/digit-free string cannot
+    // match any of them — the positive samples carry the transcription-correctness
+    // signal. The `DRIVER_LICENSE_*` and `DL_*` names identify the regex groups.
+
+    static DL_CASES: &[(&str, &LazyLock<Regex>, &str, &str)] = &[
+        // regex.rs
+        (
+            "GENERIC",
+            &RE_DRIVER_LICENSE_GENERIC,
+            "A12345678",
+            "not-a-license",
+        ),
+        ("CA", &RE_DRIVER_LICENSE_CA, "A1234567", "not-a-license"),
+        ("NY", &RE_DRIVER_LICENSE_NY, "A12345678", "not-a-license"),
+        ("TX", &RE_DRIVER_LICENSE_TX, "12345678", "not-a-license"),
+        ("FL", &RE_DRIVER_LICENSE_FL, "A123456", "not-a-license"),
+        // regex_extended.rs (50 states + DC)
+        ("ALABAMA", &RE_DL_ALABAMA, "1234567", "not-a-license"),
+        ("ALASKA", &RE_DL_ALASKA, "1234567", "not-a-license"),
+        ("ARIZONA", &RE_DL_ARIZONA, "A12345678", "not-a-license"),
+        ("ARKANSAS", &RE_DL_ARKANSAS, "1234567", "not-a-license"),
+        ("CALIFORNIA", &RE_DL_CALIFORNIA, "A1234567", "not-a-license"),
+        ("COLORADO", &RE_DL_COLORADO, "123456789", "not-a-license"),
+        (
+            "CONNECTICUT",
+            &RE_DL_CONNECTICUT,
+            "123456789",
+            "not-a-license",
+        ),
+        ("DELAWARE", &RE_DL_DELAWARE, "1234567", "not-a-license"),
+        ("DC", &RE_DL_DC, "1234567", "not-a-license"),
+        ("FLORIDA", &RE_DL_FLORIDA, "A123456789012", "not-a-license"),
+        ("GEORGIA", &RE_DL_GEORGIA, "12345678", "not-a-license"),
+        ("HAWAII", &RE_DL_HAWAII, "A12345678", "not-a-license"),
+        ("IDAHO", &RE_DL_IDAHO, "AB123456C", "not-a-license"),
+        (
+            "ILLINOIS",
+            &RE_DL_ILLINOIS,
+            "A123456789012",
+            "not-a-license",
+        ),
+        ("INDIANA", &RE_DL_INDIANA, "A123456789", "not-a-license"),
+        ("IOWA", &RE_DL_IOWA, "123AB6789", "not-a-license"),
+        ("KANSAS", &RE_DL_KANSAS, "K12345678", "not-a-license"),
+        ("KENTUCKY", &RE_DL_KENTUCKY, "A12345678", "not-a-license"),
+        ("LOUISIANA", &RE_DL_LOUISIANA, "123456789", "not-a-license"),
+        ("MAINE", &RE_DL_MAINE, "1234567", "not-a-license"),
+        (
+            "MARYLAND",
+            &RE_DL_MARYLAND,
+            "A123456789012",
+            "not-a-license",
+        ),
+        (
+            "MASSACHUSETTS",
+            &RE_DL_MASSACHUSETTS,
+            "A12345678",
+            "not-a-license",
+        ),
+        ("MICHIGAN", &RE_DL_MICHIGAN, "A1234567890", "not-a-license"),
+        (
+            "MINNESOTA",
+            &RE_DL_MINNESOTA,
+            "A123456789012",
+            "not-a-license",
+        ),
+        (
+            "MISSISSIPPI",
+            &RE_DL_MISSISSIPPI,
+            "123456789",
+            "not-a-license",
+        ),
+        ("MISSOURI", &RE_DL_MISSOURI, "A12345678", "not-a-license"),
+        ("MONTANA", &RE_DL_MONTANA, "123456789", "not-a-license"),
+        ("NEBRASKA", &RE_DL_NEBRASKA, "A1234567", "not-a-license"),
+        ("NEVADA", &RE_DL_NEVADA, "X12345678", "not-a-license"),
+        (
+            "NEW_HAMPSHIRE",
+            &RE_DL_NEW_HAMPSHIRE,
+            "12ABC34567",
+            "not-a-license",
+        ),
+        (
+            "NEW_JERSEY",
+            &RE_DL_NEW_JERSEY,
+            "A12345678901234",
+            "not-a-license",
+        ),
+        ("NEW_MEXICO", &RE_DL_NEW_MEXICO, "12345678", "not-a-license"),
+        ("NEW_YORK", &RE_DL_NEW_YORK, "123456789", "not-a-license"),
+        (
+            "NORTH_CAROLINA",
+            &RE_DL_NORTH_CAROLINA,
+            "123456789",
+            "not-a-license",
+        ),
+        (
+            "NORTH_DAKOTA",
+            &RE_DL_NORTH_DAKOTA,
+            "ABC123456",
+            "not-a-license",
+        ),
+        ("OHIO", &RE_DL_OHIO, "AB123456", "not-a-license"),
+        ("OKLAHOMA", &RE_DL_OKLAHOMA, "A123456789", "not-a-license"),
+        ("OREGON", &RE_DL_OREGON, "123456789", "not-a-license"),
+        (
+            "PENNSYLVANIA",
+            &RE_DL_PENNSYLVANIA,
+            "12345678",
+            "not-a-license",
+        ),
+        (
+            "RHODE_ISLAND",
+            &RE_DL_RHODE_ISLAND,
+            "1234567",
+            "not-a-license",
+        ),
+        (
+            "SOUTH_CAROLINA",
+            &RE_DL_SOUTH_CAROLINA,
+            "12345678",
+            "not-a-license",
+        ),
+        (
+            "SOUTH_DAKOTA",
+            &RE_DL_SOUTH_DAKOTA,
+            "1234567",
+            "not-a-license",
+        ),
+        ("TENNESSEE", &RE_DL_TENNESSEE, "12345678", "not-a-license"),
+        ("TEXAS", &RE_DL_TEXAS, "12345678", "not-a-license"),
+        ("UTAH", &RE_DL_UTAH, "12345678", "not-a-license"),
+        ("VERMONT", &RE_DL_VERMONT, "12345678", "not-a-license"),
+        ("VIRGINIA", &RE_DL_VIRGINIA, "A12345678", "not-a-license"),
+        (
+            "WASHINGTON",
+            &RE_DL_WASHINGTON,
+            "ABCD12345",
+            "not-a-license",
+        ),
+        (
+            "WEST_VIRGINIA",
+            &RE_DL_WEST_VIRGINIA,
+            "1234567",
+            "not-a-license",
+        ),
+        (
+            "WISCONSIN",
+            &RE_DL_WISCONSIN,
+            "A1234567890123",
+            "not-a-license",
+        ),
+        ("WYOMING", &RE_DL_WYOMING, "123456789", "not-a-license"),
+    ];
+
+    #[test]
+    fn driver_license_patterns_match_positives_reject_negatives() {
+        for (name, re, positive, negative) in DL_CASES {
+            assert!(
+                re.is_match(positive),
+                "DL pattern {name} should match positive sample {positive:?}"
+            );
+            assert!(
+                !re.is_match(negative),
+                "DL pattern {name} should not match negative sample {negative:?}"
+            );
+        }
+        // Sanity: ensure the table actually covers every ported pattern.
+        assert_eq!(DL_CASES.len(), 56);
+    }
+
+    #[test]
+    fn driver_license_patterns_registered_in_builtin() {
+        let count = builtin_patterns()
+            .iter()
+            .filter(|p| p.entity_type == EntityType::DriverLicense)
+            .count();
+        assert_eq!(
+            count, 56,
+            "expected 56 DriverLicense builtin patterns, found {count}"
+        );
+    }
+
+    #[test]
+    fn driver_license_parse_and_display_roundtrip() {
+        assert_eq!(EntityType::DriverLicense.to_string(), "driver_license");
+        assert_eq!(
+            EntityType::parse("driver_license"),
+            Some(EntityType::DriverLicense)
+        );
+        assert!(!EntityType::DriverLicense.is_ner_only());
     }
 }

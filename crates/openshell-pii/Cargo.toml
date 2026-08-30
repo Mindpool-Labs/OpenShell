@@ -18,6 +18,7 @@ ner = ["dep:reqwest", "dep:tokio", "dep:serde_json"]
 regex = "1"
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
+sha2 = "0.10"
 tracing = { workspace = true }
 
 # NER client dependencies (optional, behind "ner" feature)

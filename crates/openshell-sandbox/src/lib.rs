@@ -1079,14 +1079,14 @@ fn enrich_sandbox_baseline_paths(policy: &mut SandboxPolicy) {
 
     let mut modified = false;
     for &path in PROXY_BASELINE_READ_ONLY {
-        let p = std::path::PathBuf::from(path);
+        let p = PathBuf::from(path);
         if !policy.filesystem.read_only.contains(&p) {
             policy.filesystem.read_only.push(p);
             modified = true;
         }
     }
     for &path in PROXY_BASELINE_READ_WRITE {
-        let p = std::path::PathBuf::from(path);
+        let p = PathBuf::from(path);
         if !policy.filesystem.read_write.contains(&p) {
             policy.filesystem.read_write.push(p);
             modified = true;

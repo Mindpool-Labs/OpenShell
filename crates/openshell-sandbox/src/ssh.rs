@@ -455,10 +455,17 @@ impl russh::server::Handler for SshHandler {
             // which is exactly what spawn_pipe_exec wires up.  This enables
             // modern scp (SFTP-based, OpenSSH 9.0+) and SFTP clients to
             // transfer files into and out of the sandbox.
+            //
+            // The sftp-server binary path is overridable via
+            // OPENSHELL_SFTP_SERVER_PATH (default /usr/lib/openssh/sftp-server),
+            // so a minimal image (e.g. a confidential CVM guest without the
+            // full openssh-server package) can point at a vendored sftp-server.
+            let sftp_server = std::env::var("OPENSHELL_SFTP_SERVER_PATH")
+                .unwrap_or_else(|_| "/usr/lib/openssh/sftp-server".to_string());
             let input_sender = spawn_pipe_exec(
                 &self.policy,
                 self.workdir.clone(),
-                Some("/usr/lib/openssh/sftp-server".to_string()),
+                Some(sftp_server),
                 session.handle(),
                 channel,
                 self.netns_fd,

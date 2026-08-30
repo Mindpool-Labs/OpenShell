@@ -19,7 +19,14 @@ permissions:
   packages: write
 
 jobs:
+  public-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh scripts/check-public-boundary.sh
+
   build-ci-image:
+    needs: [public-boundary]
     name: Build
     runs-on: build-amd64
     steps:

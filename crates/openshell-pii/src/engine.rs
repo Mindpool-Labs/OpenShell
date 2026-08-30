@@ -401,6 +401,77 @@ mod tests {
     }
 
     #[test]
+    fn apply_redact_overlapping_numeric_patterns_is_safe() {
+        // Integration coverage for the overlap-safe `redact_with` path: a
+        // 9-digit routing-number-valid run (`021000021`) ALSO matches the
+        // broader BankAccount pattern `\b\d{8,17}\b`, so the real detect()
+        // path emits two detections on the SAME byte span. Without overlap
+        // safety the second redaction splices into the just-emitted token,
+        // producing mangled output (e.g. `[REDACTED:routing_number]...]`)
+        // and an inflated count.
+        let policy = PiiPolicy {
+            enforcement: "redact".to_string(),
+            ..Default::default()
+        };
+        let engine = PiiEngine::new(&policy);
+        let mut body = b"routing: 021000021 end".to_vec();
+        let detections = engine.detect(&body);
+
+        // Sanity: the overlap we rely on actually occurs in the real detector.
+        assert!(
+            detections
+                .iter()
+                .any(|d| d.entity_type == EntityType::RoutingNumber),
+            "RoutingNumber must fire"
+        );
+        assert!(
+            detections
+                .iter()
+                .any(|d| d.entity_type == EntityType::BankAccount),
+            "BankAccount must fire on the same digit run"
+        );
+        assert!(
+            detections
+                .iter()
+                .filter(|d| d.entity_type == EntityType::RoutingNumber
+                    || d.entity_type == EntityType::BankAccount)
+                .map(|d| (d.span.start, d.span.end))
+                .all(|(s, e)| s == 9 && e == 18),
+            "both must share span [9..18]"
+        );
+
+        let result = engine.apply(&mut body, &detections);
+        let out = String::from_utf8_lossy(&body);
+
+        // The raw PII must be gone.
+        assert!(!out.contains("021000021"));
+
+        let count = match result {
+            PiiApplyResult::Redacted { count, .. } => count,
+            other => panic!("expected Redacted, got {other:?}"),
+        };
+
+        // Cleanliness invariant: every applied redaction emits exactly one
+        // `[REDACTED:` opener and one `]` closer. If a second overlapping
+        // detection spliced into an existing token, closers would outnumber
+        // openers (corruption like `...]bank_account]`) — so the two counts
+        // must be equal and must equal the redaction count.
+        let openers = out.matches("[REDACTED:").count();
+        let closers = out.matches(']').count();
+        assert_eq!(
+            openers, count,
+            "openers must equal redaction count (no nested/extra tokens)"
+        );
+        assert_eq!(
+            closers, openers,
+            "closers must equal openers (no mangled trailing fragments)"
+        );
+        // The overlapping BankAccount/RoutingNumber detection must collapse to
+        // a single redaction of the shared span.
+        assert_eq!(count, 1, "overlapping detection must not double-count");
+    }
+
+    #[test]
     fn custom_pattern_detects() {
         let policy = PiiPolicy {
             custom_patterns: vec![crate::policy::CustomPattern {
