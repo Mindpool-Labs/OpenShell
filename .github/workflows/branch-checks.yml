@@ -13,8 +13,23 @@ permissions:
   packages: read
 
 jobs:
+  public-boundary:
+    name: Public Information Boundary
+    runs-on: build-amd64
+    container:
+      image: ghcr.io/nvidia/openshell/ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check public information boundary
+        run: sh scripts/check-public-boundary.sh
+
   license-headers:
     name: License Headers
+    needs: [public-boundary]
     runs-on: build-amd64
     container:
       image: ghcr.io/nvidia/openshell/ci:latest
@@ -32,6 +47,7 @@ jobs:
 
   rust:
     name: Rust (${{ matrix.runner }})
+    needs: [public-boundary]
     strategy:
       fail-fast: false
       matrix:
@@ -76,6 +92,7 @@ jobs:
 
   python:
     name: Python (${{ matrix.runner }})
+    needs: [public-boundary]
     strategy:
       fail-fast: false
       matrix:

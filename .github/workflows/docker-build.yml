@@ -32,6 +32,11 @@ on:
         required: false
         type: string
         default: ""
+      source-ref:
+        description: "Git ref to build"
+        required: false
+        type: string
+        default: ${{ github.ref }}
 
 env:
   MISE_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -62,6 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.source-ref }}
           fetch-depth: 0
 
       - name: Mark workspace safe for git

@@ -107,6 +107,7 @@ These pipelines connect skills into end-to-end workflows. Individual skill files
 - When changes affect user-facing behavior, also update the relevant pages under `docs/`.
 - Follow the style guide in [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): active voice, no unnecessary bold, no em dash overuse, no filler introductions.
 - Use the `update-docs` skill to scan recent commits and draft doc updates.
+- Do not cite private plans, reports, or internal delivery labels in public source. Run `sh scripts/check-public-boundary.sh` before review.
 
 ## Security
 

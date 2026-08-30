@@ -24,7 +24,14 @@ env:
     MISE_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
+    public-boundary:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - run: sh scripts/check-public-boundary.sh
+
     preview:
+        needs: [public-boundary]
         runs-on: build-arm64
         container:
             image: ghcr.io/nvidia/openshell/ci:latest

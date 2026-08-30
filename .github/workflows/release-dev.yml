@@ -14,10 +14,18 @@ defaults:
     shell: bash
 
 jobs:
+  public-boundary:
+    name: public information boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh scripts/check-public-boundary.sh
+
   # ---------------------------------------------------------------------------
   # Compute all versions once at the start to avoid git-describe race conditions
   # ---------------------------------------------------------------------------
   compute-versions:
+    needs: [public-boundary]
     name: Compute Versions
     runs-on: build-amd64
     timeout-minutes: 5
@@ -48,21 +56,21 @@ jobs:
           echo "cargo=$(uv run python tasks/scripts/release.py get-version --cargo)" >> "$GITHUB_OUTPUT"
 
   build-gateway:
-    needs: [compute-versions]
+    needs: [public-boundary, compute-versions]
     uses: ./.github/workflows/docker-build.yml
     with:
       component: gateway
       cargo-version: ${{ needs.compute-versions.outputs.cargo_version }}
 
   build-cluster:
-    needs: [compute-versions]
+    needs: [public-boundary, compute-versions]
     uses: ./.github/workflows/docker-build.yml
     with:
       component: cluster
       cargo-version: ${{ needs.compute-versions.outputs.cargo_version }}
 
   e2e:
-    needs: [build-gateway, build-cluster]
+    needs: [public-boundary, build-gateway, build-cluster]
     uses: ./.github/workflows/e2e-test.yml
     with:
       image-tag: ${{ github.sha }}
@@ -70,7 +78,7 @@ jobs:
 
   tag-ghcr-dev:
     name: Tag GHCR Images as Dev
-    needs: [build-gateway, build-cluster]
+    needs: [public-boundary, build-gateway, build-cluster]
     runs-on: build-amd64
     timeout-minutes: 10
     steps:
@@ -91,7 +99,7 @@ jobs:
 
   build-python-wheels:
     name: Stage Python Wheels
-    needs: [compute-versions]
+    needs: [public-boundary, compute-versions]
     runs-on: build-amd64
     timeout-minutes: 120
     outputs:
@@ -152,7 +160,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-cli-linux:
     name: Build CLI (Linux ${{ matrix.arch }})
-    needs: [compute-versions]
+    needs: [public-boundary, compute-versions]
     strategy:
       matrix:
         include:
@@ -246,7 +254,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-cli-macos:
     name: Build CLI (macOS)
-    needs: [compute-versions]
+    needs: [public-boundary, compute-versions]
     runs-on: build-amd64
     timeout-minutes: 60
     container:
@@ -309,7 +317,7 @@ jobs:
   # ---------------------------------------------------------------------------
   release-dev:
     name: Release Dev
-    needs: [build-cli-linux, build-cli-macos, build-python-wheels]
+    needs: [public-boundary, build-cli-linux, build-cli-macos, build-python-wheels]
     runs-on: build-amd64
     timeout-minutes: 10
     steps:
@@ -416,7 +424,7 @@ jobs:
 
   trigger-wheel-publish:
     name: Trigger Wheel Publish
-    needs: [compute-versions, build-python-wheels, release-dev]
+    needs: [public-boundary, compute-versions, build-python-wheels, release-dev]
     runs-on: [self-hosted, nv]
     timeout-minutes: 10
     steps:

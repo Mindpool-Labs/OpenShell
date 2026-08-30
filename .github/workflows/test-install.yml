@@ -18,7 +18,14 @@ permissions:
   contents: read
 
 jobs:
+  public-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh scripts/check-public-boundary.sh
+
   test-install:
+    needs: [public-boundary]
     name: install.sh (${{ matrix.shell }})
     runs-on: ubuntu-latest
     strategy:
