@@ -17,6 +17,9 @@ mod engine;
 mod entities;
 mod policy;
 mod redactor;
+mod synthetic;
+
+pub mod validators;
 
 #[cfg(feature = "ner")]
 pub mod ner_client;
@@ -24,7 +27,7 @@ pub mod ner_client;
 pub use engine::{PiiEngine, merge_detections};
 pub use entities::EntityType;
 pub use policy::{CustomPattern, PiiAction, PiiApplyResult, PiiDetection, PiiPolicy};
-pub use redactor::redact;
+pub use redactor::{RedactionFormat, redact, redact_with};
 
 #[cfg(feature = "ner")]
 pub use ner_client::NerClient;
